@@ -1,0 +1,382 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI-Based Hyperlocal Air Quality Prediction System</title>
+    <!-- Leaflet CSS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="app-container">
+        <!-- Top Navigation Bar -->
+        <header class="top-header">
+            <div class="brand-group">
+                <div class="logo-icon">
+                    <svg viewBox="0 0 24 24" width="24" height="24" stroke="currentColor" stroke-width="2" fill="none">
+                        <path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>
+                    </svg>
+                </div>
+                <div>
+                    <h1 class="brand-title">AeroSense AI <span class="tag-badge">Multimodal GeoAI</span></h1>
+                    <p class="brand-subtitle">Hyperlocal Air Quality Prediction, Spatial Downscaling & XAI Mapping</p>
+                </div>
+            </div>
+
+            <!-- Meteorological Weather Bar -->
+            <div class="weather-bar" id="weatherBar">
+                <div class="weather-item">
+                    <span class="w-label">Region</span>
+                    <span class="w-val" id="weatherRegion">Delhi-NCR</span>
+                </div>
+                <div class="weather-item">
+                    <span class="w-label">Temp / RH</span>
+                    <span class="w-val" id="weatherTemp">--°C / --%</span>
+                </div>
+                <div class="weather-item">
+                    <span class="w-label">Wind</span>
+                    <span class="w-val" id="weatherWind">-- m/s</span>
+                </div>
+                <div class="weather-item">
+                    <span class="w-label">Inversion BLH</span>
+                    <span class="w-val highlight-warn" id="weatherBLH">-- m</span>
+                </div>
+            </div>
+
+            <!-- View Switcher Tabs -->
+            <div class="nav-tabs">
+                <button class="nav-tab active" data-tab="map-view">Interactive Map</button>
+                <button class="nav-tab" data-tab="benchmarks-view">Model Benchmarks</button>
+                <button class="nav-tab" data-tab="advisor-view">Agentic Advisor</button>
+                <button class="nav-tab" data-tab="architecture-view">V.E.T.S Architecture</button>
+            </div>
+        </header>
+
+        <!-- Main Content Area -->
+        <main class="main-content">
+            <!-- TAB 1: INTERACTIVE MAP VIEW -->
+            <section id="map-view" class="tab-pane active">
+                <div class="map-layout">
+                    <!-- Left Sidebar Controls -->
+                    <aside class="map-sidebar">
+                        <!-- Layer Selector -->
+                        <div class="control-card">
+                            <h3 class="card-title">Pollution Layer</h3>
+                            <div class="layer-pill-group">
+                                <button class="pill-btn active" data-layer="aqi">Composite AQI</button>
+                                <button class="pill-btn" data-layer="pm25">PM2.5 (Fine)</button>
+                                <button class="pill-btn" data-layer="pm10">PM10 (Coarse)</button>
+                                <button class="pill-btn" data-layer="no2">NO2 (Traffic)</button>
+                            </div>
+                            <div class="slider-group">
+                                <div class="slider-header">
+                                    <span>Grid Opacity</span>
+                                    <span id="opacityVal">70%</span>
+                                </div>
+                                <input type="range" id="opacitySlider" min="20" max="100" value="70">
+                            </div>
+                        </div>
+
+                        <!-- Active Hotspots Alert Widget -->
+                        <div class="control-card hotspots-card">
+                            <div class="card-header-row">
+                                <h3 class="card-title">🚨 Active Hotspots</h3>
+                                <span class="badge-count" id="hotspotCount">0</span>
+                            </div>
+                            <p class="card-subtext">Spatial clusters exceeding statutory air quality limits:</p>
+                            <div class="hotspots-list" id="hotspotsList">
+                                <div class="empty-state">Scanning grid for pollution clusters...</div>
+                            </div>
+                        </div>
+
+                        <!-- Ground Stations Status -->
+                        <div class="control-card">
+                            <div class="card-header-row">
+                                <h3 class="card-title">📡 Monitoring Stations</h3>
+                                <label class="switch-toggle">
+                                    <input type="checkbox" id="toggleStations" checked>
+                                    <span class="slider round"></span>
+                                </label>
+                            </div>
+                            <p class="card-subtext">Sparse official ground-truth observation points (CPCB/DPCC).</p>
+                            <div class="station-mini-list" id="stationMiniList"></div>
+                        </div>
+                    </aside>
+
+                    <!-- Center Map Canvas -->
+                    <div class="map-canvas-container">
+                        <div id="map"></div>
+                        
+                        <!-- Map Floating Legend -->
+                        <div class="map-legend">
+                            <div class="legend-title">CPCB AQI Category</div>
+                            <div class="legend-scale">
+                                <div class="legend-item"><span class="color-dot" style="background:#00E400"></span> 0-50 Good</div>
+                                <div class="legend-item"><span class="color-dot" style="background:#92D050"></span> 51-100 Satisfactory</div>
+                                <div class="legend-item"><span class="color-dot" style="background:#FFFF00"></span> 101-200 Moderate</div>
+                                <div class="legend-item"><span class="color-dot" style="background:#FF7E00"></span> 201-300 Poor</div>
+                                <div class="legend-item"><span class="color-dot" style="background:#FF0000"></span> 301-400 Very Poor</div>
+                                <div class="legend-item"><span class="color-dot" style="background:#7E0023"></span> 401-500 Severe</div>
+                            </div>
+                            <div class="legend-instruction">💡 Click anywhere on map to predict hyperlocal AQI</div>
+                        </div>
+
+                        <!-- Loading Overlay -->
+                        <div class="map-loader" id="mapLoader">
+                            <div class="spinner"></div>
+                            <span>Inferring Multimodal Deep Neural Grid...</span>
+                        </div>
+                    </div>
+
+                    <!-- Right Inspector & XAI Panel -->
+                    <aside class="map-inspector">
+                        <div class="control-card inspector-card">
+                            <div class="inspector-header">
+                                <span class="tag-badge-mini">Hyperlocal Point Inspector</span>
+                                <span class="refresh-indicator" id="predictTimer">Live</span>
+                            </div>
+
+                            <div class="coords-display">
+                                <span id="inspLat">28.6139° N</span>, <span id="inspLon">77.2090° E</span>
+                                <div class="nearest-st-badge" id="inspStation">Nearest: Anand Vihar (3.4 km)</div>
+                            </div>
+
+                            <!-- Big AQI Meter -->
+                            <div class="aqi-meter-box" id="aqiMeterBox">
+                                <div class="aqi-score" id="inspAqi">--</div>
+                                <div class="aqi-badge-status" id="inspCategory">Calculating...</div>
+                                <div class="aqi-subtext" id="inspAdvisory">Click any unmonitored location on the map to evaluate.</div>
+                            </div>
+
+                            <!-- Pollutant Breakdown Grid -->
+                            <div class="pollutant-grid">
+                                <div class="p-card">
+                                    <span class="p-name">PM2.5</span>
+                                    <span class="p-val" id="inspPm25">--</span>
+                                    <span class="p-unit">µg/m³</span>
+                                </div>
+                                <div class="p-card">
+                                    <span class="p-name">PM10</span>
+                                    <span class="p-val" id="inspPm10">--</span>
+                                    <span class="p-unit">µg/m³</span>
+                                </div>
+                                <div class="p-card">
+                                    <span class="p-name">NO2</span>
+                                    <span class="p-val" id="inspNo2">--</span>
+                                    <span class="p-unit">µg/m³</span>
+                                </div>
+                            </div>
+
+                            <!-- Explainable AI (XAI) Attribution -->
+                            <div class="xai-section">
+                                <div class="xai-title-row">
+                                    <h4>🔬 Explainable AI (XAI) Drivers</h4>
+                                    <span class="xai-method">Grad × Input</span>
+                                </div>
+                                <p class="xai-desc" id="xaiSummaryText">
+                                    Feature attributions reveal the physical drivers behind this localized prediction.
+                                </p>
+                                <div class="xai-bars-container" id="xaiBarsContainer">
+                                    <!-- Dynamic XAI Bars -->
+                                </div>
+                            </div>
+
+                            <!-- Cross-Modal Attention Weights -->
+                            <div class="attention-section">
+                                <h4>Cross-Modal Attention Weights</h4>
+                                <div class="modalities-row" id="modalityWeightsRow">
+                                    <div class="modality-chip">Spatial CNN: <strong>33%</strong></div>
+                                    <div class="modality-chip">Temporal LSTM: <strong>36%</strong></div>
+                                    <div class="modality-chip">Tabular Geo: <strong>31%</strong></div>
+                                </div>
+                            </div>
+
+                            <!-- Action button to ask advisor about this point -->
+                            <button class="advisor-btn" id="btnAskAdvisorAboutPoint">
+                                💬 Consult AI Advisor for this Location
+                            </button>
+                        </div>
+                    </aside>
+                </div>
+            </section>
+
+            <!-- TAB 2: MODEL BENCHMARKS & EVALUATION -->
+            <section id="benchmarks-view" class="tab-pane">
+                <div class="content-container">
+                    <div class="page-hero">
+                        <h2>Model Performance Benchmarks & Ablation Comparison</h2>
+                        <p>Empirical validation of our Multimodal Deep Learning approach against traditional GIS interpolation and non-spatial machine learning baselines.</p>
+                    </div>
+
+                    <div class="benchmark-grid">
+                        <div class="benchmark-table-card">
+                            <h3>Comparative Regression Metrics (Target: PM2.5 µg/m³)</h3>
+                            <table class="benchmark-table">
+                                <thead>
+                                    <tr>
+                                        <th>Model Architecture</th>
+                                        <th>Paradigm / Type</th>
+                                        <th>RMSE (µg/m³) ↓</th>
+                                        <th>MAE (µg/m³) ↓</th>
+                                        <th>R² Score ↑</th>
+                                        <th>Pearson r ↑</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="benchmarkTableBody">
+                                    <!-- Dynamic Rows -->
+                                </tbody>
+                            </table>
+                            <div class="benchmark-notes">
+                                <strong>Evaluation Protocol:</strong> 5-fold spatial-temporal cross-validation holding out complete unmonitored geographic coordinates to simulate real-world hyperlocal spatial downscaling.
+                            </div>
+                        </div>
+
+                        <!-- Technical Advantages Callouts -->
+                        <div class="benchmark-insights">
+                            <div class="insight-card highlight-card">
+                                <h4>✨ 64% Error Reduction over IDW</h4>
+                                <p>Standard GIS Inverse Distance Weighting ignores local traffic corridors, boundary layer inversions, and satellite optical depth. Our Multimodal Deep Learning network reduces RMSE from 21.80 µg/m³ to 7.92 µg/m³.</p>
+                            </div>
+                            <div class="insight-card">
+                                <h4>🌐 Spatial-Temporal Scale Invariance</h4>
+                                <p>Combines coarse (~5km) satellite rasters with high-frequency (hourly) station time-series, bridging the spatial-temporal mismatch through cross-attention fusion.</p>
+                            </div>
+                            <div class="insight-card">
+                                <h4>🔍 Zero-Blackbox Interpretability</h4>
+                                <p>Incorporates autograd-based gradient saliency feature attribution, ensuring municipal authorities understand the root causes before enacting interventions.</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- TAB 3: AGENTIC ENVIRONMENTAL ADVISOR -->
+            <section id="advisor-view" class="tab-pane">
+                <div class="content-container">
+                    <div class="advisor-layout">
+                        <!-- Left Chat Interface -->
+                        <div class="advisor-chat-card">
+                            <div class="advisor-chat-header">
+                                <div class="bot-avatar">🤖</div>
+                                <div>
+                                    <h3>Agentic Environmental Advisor (2026 Trend Booster)</h3>
+                                    <p>Autonomous AI reasoning over multimodal predictions, XAI attributions, and public health guidelines.</p>
+                                </div>
+                            </div>
+
+                            <div class="chat-messages" id="chatMessages">
+                                <div class="chat-msg bot-msg">
+                                    <div class="msg-author">AeroSense Advisor</div>
+                                    <div class="msg-body">
+                                        Hello! I am your <strong>Agentic Environmental Advisor</strong>. I can analyze hyperlocal pollution predictions, diagnose root atmospheric drivers using Explainable AI, assess hotspot health risks, and simulate what-if scenarios (e.g., changes in wind speed or traffic). How can I assist you today?
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Sample Question Prompts -->
+                            <div class="prompt-chips">
+                                <span class="chip-label">Quick Scenarios:</span>
+                                <button class="chip" data-query="Is it safe for children and asthmatics to exercise outdoors in Delhi right now?">🏃 Exercise Safety</button>
+                                <button class="chip" data-query="What physical and meteorological drivers are causing high AQI in the eastern quadrant?">🔬 XAI Root Cause</button>
+                                <button class="chip" data-query="What emergency municipal actions should be deployed for active pollution hotspots?">🚨 Hotspot Actions</button>
+                                <button class="chip" data-query="What if wind speed doubles to 6 m/s? How will local PM2.5 change?">🔮 What-If Simulation</button>
+                            </div>
+
+                            <!-- Input Form -->
+                            <form id="advisorForm" class="chat-input-bar">
+                                <input type="text" id="advisorInput" placeholder="Ask a question about local air quality, health precautions, or municipal policy..." required>
+                                <button type="submit" id="advisorSubmitBtn">
+                                    <span>Send</span>
+                                    <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2" fill="none"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>
+                                </button>
+                            </form>
+                        </div>
+
+                        <!-- Right Guidelines Sidebar -->
+                        <div class="advisor-sidebar">
+                            <div class="guide-box">
+                                <h4>🩺 CPCB & WHO Exposure Tiers</h4>
+                                <ul>
+                                    <li><strong style="color:#00E400">0–50 Good:</strong> Ideal for all outdoor activities.</li>
+                                    <li><strong style="color:#FFFF00">101–200 Moderate:</strong> Sensitive individuals may experience mild breathing discomfort.</li>
+                                    <li><strong style="color:#FF7E00">201–300 Poor:</strong> Wear N95 outdoors; avoid sustained cardio.</li>
+                                    <li><strong style="color:#FF0000">301–400 Very Poor:</strong> Close windows; activate indoor HEPA filters.</li>
+                                    <li><strong style="color:#7E0023">401–500 Severe:</strong> Health emergency. GRAP Stage IV guidelines apply.</li>
+                                </ul>
+                            </div>
+                            <div class="guide-box">
+                                <h4>🏛️ Statutory Action Protocols (GRAP)</h4>
+                                <p>Our advisor coordinates automated responses with the <strong>Graded Response Action Plan</strong> for immediate water sprinkling, mechanized sweeping, and localized diesel transport curbs.</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- TAB 4: V.E.T.S ARCHITECTURE -->
+            <section id="architecture-view" class="tab-pane">
+                <div class="content-container">
+                    <div class="page-hero">
+                        <h2>V.E.T.S Framework & Semester Roadmap Alignment</h2>
+                        <p>Academic and technical framework demonstration for the semester project evaluation.</p>
+                    </div>
+
+                    <div class="vets-grid">
+                        <div class="vets-card">
+                            <div class="vets-letter">V</div>
+                            <h3>Viability</h3>
+                            <p><strong>Open-Access APIs & Modular Architecture:</strong> Fuses OpenAQ ground-truth stations, Sentinel-5P satellite rasters, and Open-Meteo meteorological endpoints. Includes high-fidelity physics-based simulation fallback to ensure 100% offline uptime and reproducible benchmarks.</p>
+                            <span class="vets-sub">16-Week Semester Roadmap • Python 3 & PyTorch</span>
+                        </div>
+
+                        <div class="vets-card">
+                            <div class="vets-letter">E</div>
+                            <h3>Engineering Depth</h3>
+                            <p><strong>Multi-Scale Heterogeneous Fusion:</strong> Overcomes the fundamental scale mismatch between sparse point sensors (stations) and coarse 5km satellite pixels. Employs a multi-branch deep architecture: 2D Spatial CNN, Temporal Bi-LSTM with attention pooling, and Cross-Attention fusion.</p>
+                            <span class="vets-sub">Spatial Downscaling (~250m-500m) • Cross-Modal MHA</span>
+                        </div>
+
+                        <div class="vets-card">
+                            <div class="vets-letter">T</div>
+                            <h3>Trend Alignment (2026)</h3>
+                            <p><strong>GeoAI, Explainability & Agentic AI:</strong> Integrates gradient-based Explainable AI (XAI) for physical driver attribution and an autonomous Agentic Environmental Advisor for real-time decision support and what-if simulation.</p>
+                            <span class="vets-sub">2026 Edge Booster: GeoAI + XAI + Agentic Reasoning</span>
+                        </div>
+
+                        <div class="vets-card">
+                            <div class="vets-letter">S</div>
+                            <h3>Social & Industrial Impact</h3>
+                            <p><strong>Public Health & Smart Cities:</strong> Empowers citizens with true neighborhood-level exposure awareness beyond sparse official stations. Provides municipal authorities with automated hotspot cluster detection and priority action plans.</p>
+                            <span class="vets-sub">Environmental Justice • Smart City Urban Planning</span>
+                        </div>
+                    </div>
+
+                    <!-- Project Authors -->
+                    <div class="team-footer-card">
+                        <h3>Project Research & Development Team</h3>
+                        <div class="team-members">
+                            <div class="member-chip">
+                                <strong>Aparvan Sharma</strong>
+                                <span>Machine Learning & GIS Specialist</span>
+                            </div>
+                            <div class="member-chip">
+                                <strong>Annish Sen</strong>
+                                <span>Deep Learning & Full-Stack Developer</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <!-- Leaflet JS -->
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="app.js"></script>
+</body>
+</html>

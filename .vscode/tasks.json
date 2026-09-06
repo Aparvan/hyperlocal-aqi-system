@@ -1,0 +1,31 @@
+{
+    "version": "2.0.0",
+    "tasks": [
+        {
+            "label": "Start Dashboard Server",
+            "type": "shell",
+            "command": "python",
+            "args": ["api/app.py"],
+            "group": {
+                "kind": "build",
+                "isDefault": true
+            },
+            "problemMatcher": []
+        },
+        {
+            "label": "Run Automated Tests",
+            "type": "shell",
+            "command": "python",
+            "args": ["-m", "unittest", "discover", "tests"],
+            "group": "test",
+            "problemMatcher": []
+        },
+        {
+            "label": "Retrain Models & Benchmarks",
+            "type": "shell",
+            "command": "python",
+            "args": ["models/train_eval.py"],
+            "problemMatcher": []
+        }
+    ]
+}

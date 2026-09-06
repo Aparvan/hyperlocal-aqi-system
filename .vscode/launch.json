@@ -1,0 +1,30 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "Run Flask API & Dashboard",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "${workspaceFolder}/api/app.py",
+            "console": "integratedTerminal",
+            "env": {
+                "FLASK_ENV": "development"
+            }
+        },
+        {
+            "name": "Train Multimodal Deep Learning Models",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "${workspaceFolder}/models/train_eval.py",
+            "console": "integratedTerminal"
+        },
+        {
+            "name": "Run Unit Test Suite",
+            "type": "debugpy",
+            "request": "launch",
+            "module": "unittest",
+            "args": ["discover", "tests"],
+            "console": "integratedTerminal"
+        }
+    ]
+}
