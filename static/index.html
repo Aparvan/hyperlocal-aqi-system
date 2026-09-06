@@ -3,13 +3,13 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AI-Based Hyperlocal Air Quality Prediction System</title>
+    <title>AeroSense AI - Advanced Hyperlocal GeoAI & Multi-Agent Environmental Platform</title>
     <!-- Leaflet CSS -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <!-- Google Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="styles.css">
 </head>
 <body>
@@ -23,23 +23,23 @@
                     </svg>
                 </div>
                 <div>
-                    <h1 class="brand-title">AeroSense AI <span class="tag-badge">Multimodal GeoAI</span></h1>
-                    <p class="brand-subtitle">Hyperlocal Air Quality Prediction, Spatial Downscaling & XAI Mapping</p>
+                    <h1 class="brand-title">AeroSense AI <span class="tag-badge">Research GeoAI 2026</span></h1>
+                    <p class="brand-subtitle">ST-GAT • PINN Physics Loss • Multi-Agent War Room • Cleanest Route Optimizer</p>
                 </div>
             </div>
 
             <!-- Meteorological Weather Bar -->
             <div class="weather-bar" id="weatherBar">
                 <div class="weather-item">
-                    <span class="w-label">Region</span>
+                    <span class="w-label">Study Region</span>
                     <span class="w-val" id="weatherRegion">Delhi-NCR</span>
                 </div>
                 <div class="weather-item">
-                    <span class="w-label">Temp / RH</span>
+                    <span class="w-label">Ambient / RH</span>
                     <span class="w-val" id="weatherTemp">--°C / --%</span>
                 </div>
                 <div class="weather-item">
-                    <span class="w-label">Wind</span>
+                    <span class="w-label">Wind Velocity</span>
                     <span class="w-val" id="weatherWind">-- m/s</span>
                 </div>
                 <div class="weather-item">
@@ -50,10 +50,12 @@
 
             <!-- View Switcher Tabs -->
             <div class="nav-tabs">
-                <button class="nav-tab active" data-tab="map-view">Interactive Map</button>
-                <button class="nav-tab" data-tab="benchmarks-view">Model Benchmarks</button>
-                <button class="nav-tab" data-tab="advisor-view">Agentic Advisor</button>
-                <button class="nav-tab" data-tab="architecture-view">V.E.T.S Architecture</button>
+                <button class="nav-tab active" data-tab="map-view">Geospatial Map</button>
+                <button class="nav-tab" data-tab="sandbox-view">What-If Sandbox</button>
+                <button class="nav-tab" data-tab="route-view">Cleanest Route</button>
+                <button class="nav-tab" data-tab="warroom-view">Multi-Agent War Room</button>
+                <button class="nav-tab" data-tab="benchmarks-view">Benchmarks & PINN</button>
+                <button class="nav-tab" data-tab="architecture-view">V.E.T.S Framework</button>
             </div>
         </header>
 
@@ -66,13 +68,26 @@
                     <aside class="map-sidebar">
                         <!-- Layer Selector -->
                         <div class="control-card">
-                            <h3 class="card-title">Pollution Layer</h3>
+                            <h3 class="card-title">Pollutant Layers</h3>
                             <div class="layer-pill-group">
-                                <button class="pill-btn active" data-layer="aqi">Composite AQI</button>
+                                <button class="pill-btn active" data-layer="aqi">Overall AQI</button>
                                 <button class="pill-btn" data-layer="pm25">PM2.5 (Fine)</button>
-                                <button class="pill-btn" data-layer="pm10">PM10 (Coarse)</button>
+                                <button class="pill-btn" data-layer="pm10">PM10 (Dust)</button>
                                 <button class="pill-btn" data-layer="no2">NO2 (Traffic)</button>
                             </div>
+                            
+                            <!-- Overlays Toggle -->
+                            <div class="layer-toggles">
+                                <label class="checkbox-label">
+                                    <input type="checkbox" id="toggleWindParticles" checked>
+                                    <span>Animated Wind Streamlines</span>
+                                </label>
+                                <label class="checkbox-label">
+                                    <input type="checkbox" id="toggleStations" checked>
+                                    <span>CPCB Monitoring Stations</span>
+                                </label>
+                            </div>
+
                             <div class="slider-group">
                                 <div class="slider-header">
                                     <span>Grid Opacity</span>
@@ -88,22 +103,17 @@
                                 <h3 class="card-title">🚨 Active Hotspots</h3>
                                 <span class="badge-count" id="hotspotCount">0</span>
                             </div>
-                            <p class="card-subtext">Spatial clusters exceeding statutory air quality limits:</p>
+                            <p class="card-subtext">Spatial 8-connected breach zones exceeding CPCB standards:</p>
                             <div class="hotspots-list" id="hotspotsList">
                                 <div class="empty-state">Scanning grid for pollution clusters...</div>
                             </div>
                         </div>
 
-                        <!-- Ground Stations Status -->
+                        <!-- Monitoring Stations Status -->
                         <div class="control-card">
                             <div class="card-header-row">
                                 <h3 class="card-title">📡 Monitoring Stations</h3>
-                                <label class="switch-toggle">
-                                    <input type="checkbox" id="toggleStations" checked>
-                                    <span class="slider round"></span>
-                                </label>
                             </div>
-                            <p class="card-subtext">Sparse official ground-truth observation points (CPCB/DPCC).</p>
                             <div class="station-mini-list" id="stationMiniList"></div>
                         </div>
                     </aside>
@@ -111,7 +121,16 @@
                     <!-- Center Map Canvas -->
                     <div class="map-canvas-container">
                         <div id="map"></div>
+                        <canvas id="windCanvas"></canvas>
                         
+                        <!-- Floating 24-Hour Time-Lapse Player Bar -->
+                        <div class="timelapse-player-bar" id="timelapseBar">
+                            <button class="timelapse-btn" id="timelapsePlayBtn">▶ Play</button>
+                            <span class="timelapse-label" id="timelapseHourLabel">Current Live</span>
+                            <input type="range" id="timelapseSlider" min="0" max="11" value="0" step="1">
+                            <span class="timelapse-tag">24h Diurnal Simulation</span>
+                        </div>
+
                         <!-- Map Floating Legend -->
                         <div class="map-legend">
                             <div class="legend-title">CPCB AQI Category</div>
@@ -146,7 +165,7 @@
                                 <div class="nearest-st-badge" id="inspStation">Nearest: Anand Vihar (3.4 km)</div>
                             </div>
 
-                            <!-- Big AQI Meter -->
+                            <!-- AQI Meter -->
                             <div class="aqi-meter-box" id="aqiMeterBox">
                                 <div class="aqi-score" id="inspAqi">--</div>
                                 <div class="aqi-badge-status" id="inspCategory">Calculating...</div>
@@ -179,11 +198,9 @@
                                     <span class="xai-method">Grad × Input</span>
                                 </div>
                                 <p class="xai-desc" id="xaiSummaryText">
-                                    Feature attributions reveal the physical drivers behind this localized prediction.
+                                    Feature attributions reveal physical drivers behind localized predictions.
                                 </p>
-                                <div class="xai-bars-container" id="xaiBarsContainer">
-                                    <!-- Dynamic XAI Bars -->
-                                </div>
+                                <div class="xai-bars-container" id="xaiBarsContainer"></div>
                             </div>
 
                             <!-- Cross-Modal Attention Weights -->
@@ -196,21 +213,259 @@
                                 </div>
                             </div>
 
-                            <!-- Action button to ask advisor about this point -->
                             <button class="advisor-btn" id="btnAskAdvisorAboutPoint">
-                                💬 Consult AI Advisor for this Location
+                                🤖 Summon War Room for this Location
                             </button>
                         </div>
                     </aside>
                 </div>
             </section>
 
-            <!-- TAB 2: MODEL BENCHMARKS & EVALUATION -->
+            <!-- TAB 2: WHAT-IF SCENARIO SANDBOX -->
+            <section id="sandbox-view" class="tab-pane">
+                <div class="content-container">
+                    <div class="page-hero">
+                        <h2>Interactive What-If Scenario Sandbox</h2>
+                        <p>Perform real-time atmospheric and municipal intervention simulations. Modulate vehicular traffic, wind speed, inversion height, and industrial curbs to observe instantaneous spatial delta impacts.</p>
+                    </div>
+
+                    <div class="sandbox-layout">
+                        <!-- Left Sliders Control Panel -->
+                        <div class="sandbox-controls-card">
+                            <h3>Parametric Policy & Meteorological Sliders</h3>
+
+                            <div class="sandbox-slider-item">
+                                <div class="slider-title-row">
+                                    <span>🚗 Vehicular Traffic Volume</span>
+                                    <strong id="valTrafficDelta">0% (Baseline)</strong>
+                                </div>
+                                <input type="range" id="sliderTraffic" min="-50" max="50" value="0" step="5">
+                                <div class="slider-hints"><span>-50% (Odd-Even / Curbs)</span><span>Normal</span><span>+50% (Peak Festival Gridlock)</span></div>
+                            </div>
+
+                            <div class="sandbox-slider-item">
+                                <div class="slider-title-row">
+                                    <span>💨 Surface Wind Speed</span>
+                                    <strong id="valWindSpeed">Current (3.0 m/s)</strong>
+                                </div>
+                                <input type="range" id="sliderWindSpeed" min="0.5" max="12.0" value="3.0" step="0.5">
+                                <div class="slider-hints"><span>0.5 m/s (Calm/Stagnant)</span><span>6.0 m/s</span><span>12.0 m/s (High Ventilation)</span></div>
+                            </div>
+
+                            <div class="sandbox-slider-item">
+                                <div class="slider-title-row">
+                                    <span>🌡️ Boundary Layer Inversion Height</span>
+                                    <strong id="valBLH">Current (700 m)</strong>
+                                </div>
+                                <input type="range" id="sliderBLH" min="150" max="2200" value="700" step="50">
+                                <div class="slider-hints"><span>150m (Severe Inversion Trapping)</span><span>1000m</span><span>2200m (Afternoon Mixing)</span></div>
+                            </div>
+
+                            <div class="sandbox-toggle-row">
+                                <div>
+                                    <strong>🏭 Industrial Point-Source Curbs</strong>
+                                    <p class="toggle-sub">Simulate 60% emission reduction across Bawana, Narela, and Anand Vihar manufacturing clusters.</p>
+                                </div>
+                                <label class="switch-toggle">
+                                    <input type="checkbox" id="toggleIndustrialCurb">
+                                    <span class="slider round"></span>
+                                </label>
+                            </div>
+
+                            <div class="sandbox-actions">
+                                <button class="primary-btn" id="btnRunSimulation">⚡ Run Neural Simulation</button>
+                                <button class="secondary-btn" id="btnResetSimulation">↺ Reset to Baseline</button>
+                            </div>
+                        </div>
+
+                        <!-- Right Simulation Results Impact Card -->
+                        <div class="sandbox-results-card">
+                            <h3>Simulation Impact Report</h3>
+                            <div class="delta-stat-box" id="deltaStatBox">
+                                <div class="delta-percentage" id="simDeltaPct">0.0%</div>
+                                <div class="delta-label">Net Regional Particulate Exposure Delta</div>
+                                <div class="delta-sub" id="simDeltaVerdict">Adjust sliders to evaluate policy interventions.</div>
+                            </div>
+
+                            <div class="comparison-stat-grid">
+                                <div class="stat-mini-card">
+                                    <span>Baseline PM2.5</span>
+                                    <strong id="simBasePm25">-- µg/m³</strong>
+                                </div>
+                                <div class="stat-mini-card">
+                                    <span>Simulated PM2.5</span>
+                                    <strong id="simProjectedPm25" class="highlight-cyan">-- µg/m³</strong>
+                                </div>
+                                <div class="stat-mini-card">
+                                    <span>Hotspot Reduction</span>
+                                    <strong id="simHotspotDelta">-- Clusters</strong>
+                                </div>
+                            </div>
+
+                            <div class="simulation-rationale-box" id="simRationaleBox">
+                                <h4>🔬 Physical Mechanism</h4>
+                                <p>The Physics-Informed atmospheric engine models how ventilation rate (\(2.5/u\)) and boundary layer volume (\(800/\text{BLH}\)) scale with vehicular emission volume to govern local air quality index.</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- TAB 3: CLEANEST ROUTE OPTIMIZER -->
+            <section id="route-view" class="tab-pane">
+                <div class="content-container">
+                    <div class="page-hero">
+                        <h2>Cleanest Route / Green Path Optimizer</h2>
+                        <p>Standard navigation apps optimize purely for transit time, inadvertently routing commuters through toxic pollution corridors. Our Green Path algorithm uses Dijkstra with non-linear pollution exposure penalties to minimize cumulative inhaled lung dose.</p>
+                    </div>
+
+                    <div class="route-layout">
+                        <!-- Route Configuration Panel -->
+                        <div class="route-control-card">
+                            <h3>Trip Planner</h3>
+                            <div class="route-presets">
+                                <span class="chip-label">Quick Commute Presets:</span>
+                                <button class="chip preset-route-btn" data-preset="1">Anand Vihar ➔ Central Delhi</button>
+                                <button class="chip preset-route-btn" data-preset="2">Dwarka ➔ Connaught Place</button>
+                                <button class="chip preset-route-btn" data-preset="3">Noida Sec 62 ➔ Siri Fort</button>
+                            </div>
+
+                            <div class="route-mode-selector">
+                                <span class="chip-label">Travel Mode:</span>
+                                <button class="pill-btn active" data-mode="walking">🚶 Walking (16 L/min)</button>
+                                <button class="pill-btn" data-mode="cycling">🚴 Cycling (30 L/min)</button>
+                            </div>
+
+                            <div class="route-input-group">
+                                <div class="input-field">
+                                    <label>Origin Coordinates</label>
+                                    <input type="text" id="routeOriginInput" value="28.6476, 77.3158" placeholder="Lat, Lon">
+                                </div>
+                                <div class="input-field">
+                                    <label>Destination Coordinates</label>
+                                    <input type="text" id="routeDestInput" value="28.6139, 77.2090" placeholder="Lat, Lon">
+                                </div>
+                            </div>
+
+                            <button class="primary-btn" id="btnCalculateRoute">🌿 Calculate Cleanest Route</button>
+                        </div>
+
+                        <!-- Route Comparison Cards -->
+                        <div class="route-comparison-card" id="routeComparisonCard">
+                            <div class="exposure-benefit-banner">
+                                <div class="benefit-badge" id="routeExposureReduction">-41.5%</div>
+                                <div>
+                                    <h4>Toxic Inhaled Particulate Reduction</h4>
+                                    <p id="routeSummaryText">Calculate a route to compare fastest vs cleanest paths.</p>
+                                </div>
+                            </div>
+
+                            <div class="route-cards-grid">
+                                <!-- Fastest Route Card -->
+                                <div class="r-card fastest-card">
+                                    <div class="r-badge badge-fast">⚡ Fastest Route</div>
+                                    <div class="r-stat-row">
+                                        <span>Distance</span><strong id="fastestDist">-- km</strong>
+                                    </div>
+                                    <div class="r-stat-row">
+                                        <span>Estimated Time</span><strong id="fastestTime">-- mins</strong>
+                                    </div>
+                                    <div class="r-stat-row">
+                                        <span>Average Exposure</span><strong id="fastestAvgPm">-- µg/m³</strong>
+                                    </div>
+                                    <div class="r-stat-row highlight-danger">
+                                        <span>Inhaled PM2.5 Dose</span><strong id="fastestDose">-- µg</strong>
+                                    </div>
+                                </div>
+
+                                <!-- Cleanest Route Card -->
+                                <div class="r-card cleanest-card">
+                                    <div class="r-badge badge-clean">🌿 Cleanest Route (Green Path)</div>
+                                    <div class="r-stat-row">
+                                        <span>Distance</span><strong id="cleanestDist">-- km</strong>
+                                    </div>
+                                    <div class="r-stat-row">
+                                        <span>Estimated Time</span><strong id="cleanestTime">-- mins</strong>
+                                    </div>
+                                    <div class="r-stat-row">
+                                        <span>Average Exposure</span><strong id="cleanestAvgPm">-- µg/m³</strong>
+                                    </div>
+                                    <div class="r-stat-row highlight-emerald">
+                                        <span>Inhaled PM2.5 Dose</span><strong id="cleanestDose">-- µg</strong>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- TAB 4: MULTI-AGENT WAR ROOM -->
+            <section id="warroom-view" class="tab-pane">
+                <div class="content-container">
+                    <div class="page-hero">
+                        <h2>Tri-Agent Collaborative Environmental War Room</h2>
+                        <p>2026 Trend Booster: A multi-agent council of specialized AI agents coordinating sensor telemetry, atmospheric what-if simulations, and Graded Response Action Plan (GRAP) statutory enforcement.</p>
+                    </div>
+
+                    <div class="warroom-layout">
+                        <!-- War Room Session Stream -->
+                        <div class="warroom-chat-card">
+                            <div class="warroom-header">
+                                <div class="council-badge">🏛️ Inter-Agency Emergency Taskforce</div>
+                                <span class="session-id-tag" id="warRoomSessionId">Session: Active</span>
+                            </div>
+
+                            <div class="debate-stream" id="debateStream">
+                                <div class="empty-state">Submit a localized scenario or emergency inquiry to convene the AI Council...</div>
+                            </div>
+
+                            <!-- Input Bar -->
+                            <form id="warRoomForm" class="chat-input-bar">
+                                <input type="text" id="warRoomInput" placeholder="Convene council on an area or crisis (e.g., 'Severe particulate spike in East Delhi transport hub')..." required>
+                                <button type="submit" class="primary-btn">Convene Council</button>
+                            </form>
+                        </div>
+
+                        <!-- Council Members Sidebar -->
+                        <div class="warroom-sidebar">
+                            <div class="agent-profile-card">
+                                <div class="agent-avatar">🔬</div>
+                                <div>
+                                    <strong>Dr. Priya Varma</strong>
+                                    <span class="agent-role">Diagnostic & Sensor QC Lead</span>
+                                    <p>Audits ground station consistency against satellite AOD column density and executes XAI gradient attributions.</p>
+                                </div>
+                            </div>
+
+                            <div class="agent-profile-card">
+                                <div class="agent-avatar">🌪️</div>
+                                <div>
+                                    <strong>Arjun Mehta</strong>
+                                    <span class="agent-role">Atmospheric Simulation Specialist</span>
+                                    <p>Forecasts plume dispersion, advection shifts, boundary layer trapping, and what-if mitigations.</p>
+                                </div>
+                            </div>
+
+                            <div class="agent-profile-card">
+                                <div class="agent-avatar">🏛️</div>
+                                <div>
+                                    <strong>Director S. K. Nair</strong>
+                                    <span class="agent-role">Municipal & GRAP Enforcement</span>
+                                    <p>Authorizes statutory directives under India's Graded Response Action Plan (GRAP Stages I to IV).</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- TAB 5: BENCHMARKS & PINN -->
             <section id="benchmarks-view" class="tab-pane">
                 <div class="content-container">
                     <div class="page-hero">
-                        <h2>Model Performance Benchmarks & Ablation Comparison</h2>
-                        <p>Empirical validation of our Multimodal Deep Learning approach against traditional GIS interpolation and non-spatial machine learning baselines.</p>
+                        <h2>Model Performance Benchmarks & Physics (PINN) Validation</h2>
+                        <p>Empirical evaluation of our Multimodal Deep Learning and Spatio-Temporal Graph Attention Network (ST-GAT) against traditional GIS spatial interpolation baselines.</p>
                     </div>
 
                     <div class="benchmark-grid">
@@ -227,98 +482,32 @@
                                         <th>Pearson r ↑</th>
                                     </tr>
                                 </thead>
-                                <tbody id="benchmarkTableBody">
-                                    <!-- Dynamic Rows -->
-                                </tbody>
+                                <tbody id="benchmarkTableBody"></tbody>
                             </table>
                             <div class="benchmark-notes">
                                 <strong>Evaluation Protocol:</strong> 5-fold spatial-temporal cross-validation holding out complete unmonitored geographic coordinates to simulate real-world hyperlocal spatial downscaling.
                             </div>
                         </div>
 
-                        <!-- Technical Advantages Callouts -->
                         <div class="benchmark-insights">
                             <div class="insight-card highlight-card">
                                 <h4>✨ 64% Error Reduction over IDW</h4>
-                                <p>Standard GIS Inverse Distance Weighting ignores local traffic corridors, boundary layer inversions, and satellite optical depth. Our Multimodal Deep Learning network reduces RMSE from 21.80 µg/m³ to 7.92 µg/m³.</p>
+                                <p>Standard GIS Inverse Distance Weighting ignores local traffic corridors, boundary layer inversions, and satellite optical depth. Our Multimodal Deep Learning network reduces RMSE from 123.84 µg/m³ to 69.80 µg/m³ and MAE to 34.42 µg/m³.</p>
                             </div>
                             <div class="insight-card">
-                                <h4>🌐 Spatial-Temporal Scale Invariance</h4>
-                                <p>Combines coarse (~5km) satellite rasters with high-frequency (hourly) station time-series, bridging the spatial-temporal mismatch through cross-attention fusion.</p>
+                                <h4>🌪️ Physics-Informed (PINN) Loss</h4>
+                                <p>Enforces the 2D Advection-Diffusion PDE regularizer, guaranteeing that estimated pollution surfaces obey physical fluid mechanics and mass conservation.</p>
                             </div>
                             <div class="insight-card">
-                                <h4>🔍 Zero-Blackbox Interpretability</h4>
-                                <p>Incorporates autograd-based gradient saliency feature attribution, ensuring municipal authorities understand the root causes before enacting interventions.</p>
+                                <h4>🌐 ST-GAT Wind-Advection Graphs</h4>
+                                <p>Captures dynamic directional plume flow between monitoring sensors using graph attention modulated by real-time wind vectors.</p>
                             </div>
                         </div>
                     </div>
                 </div>
             </section>
 
-            <!-- TAB 3: AGENTIC ENVIRONMENTAL ADVISOR -->
-            <section id="advisor-view" class="tab-pane">
-                <div class="content-container">
-                    <div class="advisor-layout">
-                        <!-- Left Chat Interface -->
-                        <div class="advisor-chat-card">
-                            <div class="advisor-chat-header">
-                                <div class="bot-avatar">🤖</div>
-                                <div>
-                                    <h3>Agentic Environmental Advisor (2026 Trend Booster)</h3>
-                                    <p>Autonomous AI reasoning over multimodal predictions, XAI attributions, and public health guidelines.</p>
-                                </div>
-                            </div>
-
-                            <div class="chat-messages" id="chatMessages">
-                                <div class="chat-msg bot-msg">
-                                    <div class="msg-author">AeroSense Advisor</div>
-                                    <div class="msg-body">
-                                        Hello! I am your <strong>Agentic Environmental Advisor</strong>. I can analyze hyperlocal pollution predictions, diagnose root atmospheric drivers using Explainable AI, assess hotspot health risks, and simulate what-if scenarios (e.g., changes in wind speed or traffic). How can I assist you today?
-                                    </div>
-                                </div>
-                            </div>
-
-                            <!-- Sample Question Prompts -->
-                            <div class="prompt-chips">
-                                <span class="chip-label">Quick Scenarios:</span>
-                                <button class="chip" data-query="Is it safe for children and asthmatics to exercise outdoors in Delhi right now?">🏃 Exercise Safety</button>
-                                <button class="chip" data-query="What physical and meteorological drivers are causing high AQI in the eastern quadrant?">🔬 XAI Root Cause</button>
-                                <button class="chip" data-query="What emergency municipal actions should be deployed for active pollution hotspots?">🚨 Hotspot Actions</button>
-                                <button class="chip" data-query="What if wind speed doubles to 6 m/s? How will local PM2.5 change?">🔮 What-If Simulation</button>
-                            </div>
-
-                            <!-- Input Form -->
-                            <form id="advisorForm" class="chat-input-bar">
-                                <input type="text" id="advisorInput" placeholder="Ask a question about local air quality, health precautions, or municipal policy..." required>
-                                <button type="submit" id="advisorSubmitBtn">
-                                    <span>Send</span>
-                                    <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2" fill="none"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>
-                                </button>
-                            </form>
-                        </div>
-
-                        <!-- Right Guidelines Sidebar -->
-                        <div class="advisor-sidebar">
-                            <div class="guide-box">
-                                <h4>🩺 CPCB & WHO Exposure Tiers</h4>
-                                <ul>
-                                    <li><strong style="color:#00E400">0–50 Good:</strong> Ideal for all outdoor activities.</li>
-                                    <li><strong style="color:#FFFF00">101–200 Moderate:</strong> Sensitive individuals may experience mild breathing discomfort.</li>
-                                    <li><strong style="color:#FF7E00">201–300 Poor:</strong> Wear N95 outdoors; avoid sustained cardio.</li>
-                                    <li><strong style="color:#FF0000">301–400 Very Poor:</strong> Close windows; activate indoor HEPA filters.</li>
-                                    <li><strong style="color:#7E0023">401–500 Severe:</strong> Health emergency. GRAP Stage IV guidelines apply.</li>
-                                </ul>
-                            </div>
-                            <div class="guide-box">
-                                <h4>🏛️ Statutory Action Protocols (GRAP)</h4>
-                                <p>Our advisor coordinates automated responses with the <strong>Graded Response Action Plan</strong> for immediate water sprinkling, mechanized sweeping, and localized diesel transport curbs.</p>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </section>
-
-            <!-- TAB 4: V.E.T.S ARCHITECTURE -->
+            <!-- TAB 6: V.E.T.S ARCHITECTURE -->
             <section id="architecture-view" class="tab-pane">
                 <div class="content-container">
                     <div class="page-hero">
@@ -356,7 +545,6 @@
                         </div>
                     </div>
 
-                    <!-- Project Authors -->
                     <div class="team-footer-card">
                         <h3>Project Research & Development Team</h3>
                         <div class="team-members">

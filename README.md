@@ -12,7 +12,16 @@
 
 Official Air Quality Index (AQI) monitoring stations are capital-intensive and sparse. In major metropolitan areas (such as Delhi-NCR), only a dozen official continuous monitoring stations exist to represent an area of over 1,500 km². However, ground-level air pollution exhibits extreme spatial and temporal heterogeneity due to localized vehicular corridors, industrial clusters, urban topography, and meteorological inversion trapping.
 
-**AeroSense AI** is a multimodal deep learning platform that bridges the scale gap by downscaling coarse satellite observations (AOD) and sparse station measurements into high-resolution (~250m–500m) continuous ground-level pollution estimates. The system incorporates **Explainable AI (XAI)** to diagnose physical root causes and an **Agentic Environmental Advisor** to provide actionable public health and municipal policy recommendations.
+**AeroSense AI** is a cutting-edge multimodal GeoAI and multi-agent platform that bridges the scale gap by downscaling coarse satellite observations (AOD) and sparse station measurements into high-resolution (~250m–500m) continuous ground-level pollution estimates.
+
+The advanced platform features:
+- **Spatio-Temporal Graph Attention Networks (ST-GAT)**: Dynamic wind-directed adjacency graph modeling how plumes physically propagate across the urban network.
+- **Physics-Informed Neural Network (PINN) Loss**: Penalizes non-physical artifacts by enforcing the 2D Advection-Diffusion Partial Differential Equation.
+- **Tri-Agent Collaborative War Room (2026 Trend Booster)**: Multi-agent council (`DiagnosticAgent`, `SimulationAgent`, `PolicyOrchestratorAgent`) orchestrating real-time Graded Response Action Plan (GRAP I-IV) directives.
+- **Interactive What-If Scenario Sandbox**: Live parameter sliders (traffic volume -50% to +50%, wind speed, boundary layer height, industrial curbs) recalculating spatial fields in real time.
+- **Cleanest Route / Green Path Optimizer**: Dijkstra/A* pathfinding that minimizes cumulative inhaled toxic particulate dose (\(\mu g\)) for commuters, pedestrians, and cyclists.
+- **24-Hour Diurnal Time-Lapse Dispersion Player**: Interactive hourly scrubbing from dawn inversion trapping to afternoon ventilation.
+- **Animated Wind Streamline Vector Overlay**: Real-time canvas particle streamlines indicating active plume dispersion trajectories.
 
 ---
 

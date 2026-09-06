@@ -1,5 +1,5 @@
 """
-REST API Backend Application.
+REST API Backend Application (Advanced GeoAI Platform).
 Provides RESTful endpoints for:
 - Monitoring station observations
 - Hyperlocal continuous downscaling grid
@@ -8,6 +8,10 @@ Provides RESTful endpoints for:
 - Explainable AI (XAI) feature attributions
 - Agentic Environmental Advisor Q&A
 - Model comparative benchmark metrics
+- What-If Scenario Simulation Sandbox
+- Cleanest Route / Green Path Optimizer
+- Tri-Agent Collaborative War Room
+- 24-Hour Time-Lapse Dispersion Frames
 - Serves interactive geospatial dashboard frontend
 """
 
@@ -15,6 +19,7 @@ import sys
 from pathlib import Path
 import json
 import datetime
+import numpy as np
 
 # Add project root to sys.path
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
@@ -24,6 +29,9 @@ from config import DEFAULT_REGION, MODELS_DIR, AQI_CATEGORIES, GROUND_STATIONS
 from services.grid_engine import HyperlocalGridEngine
 from services.hotspot_detector import HotspotDetector
 from services.advisor_agent import AgenticEnvironmentalAdvisor
+from services.scenario_simulator import ScenarioSimulator
+from services.route_optimizer import RouteOptimizer
+from services.multi_agent_war_room import MultiAgentWarRoom
 from models.xai_engine import XAIEngine
 from data.preprocessor import HyperlocalPreprocessor
 
@@ -35,6 +43,11 @@ hotspot_detector = HotspotDetector(aqi_threshold=250.0, pm25_threshold=110.0)
 advisor_agent = AgenticEnvironmentalAdvisor(grid_engine, hotspot_detector)
 xai_engine = XAIEngine(grid_engine.model)
 preprocessor = HyperlocalPreprocessor(DEFAULT_REGION)
+
+# Advanced Services
+scenario_simulator = ScenarioSimulator(grid_engine)
+route_optimizer = RouteOptimizer(grid_engine)
+multi_agent_war_room = MultiAgentWarRoom(grid_engine, xai_engine, scenario_simulator)
 
 
 @app.route("/")
@@ -49,13 +62,21 @@ def get_status():
     model_loaded = (MODELS_DIR / "multimodal_model.pt").exists()
     return jsonify({
         "status": "healthy",
-        "system": "Hyperlocal AQI Prediction & Mapping System",
-        "version": "2.0-multimodal",
+        "system": "Hyperlocal AQI Prediction & Mapping System (Advanced 2026)",
+        "version": "2.5-research-geoai",
         "region": DEFAULT_REGION,
         "model_loaded": model_loaded,
         "device": str(grid_engine.device),
         "aqi_standards": "CPCB National Air Quality Index",
         "categories": AQI_CATEGORIES,
+        "advanced_capabilities": [
+            "ST-GAT Spatio-Temporal Graph Attention",
+            "PINN Atmospheric Advection-Diffusion Loss",
+            "Tri-Agent Collaborative War Room (LangGraph-style)",
+            "What-If Interactive Scenario Sandbox",
+            "Cleanest Route Inhaled Dosage Optimizer",
+            "24-Hour Time-Lapse Dispersion Player",
+        ]
     })
 
 
@@ -177,7 +198,6 @@ def get_benchmarks():
         except Exception:
             pass
             
-    # Default benchmark baseline data if file pending
     default_benchmarks = {
         "target": "PM2.5 Concentration (ug/m3)",
         "models": {
@@ -188,6 +208,135 @@ def get_benchmarks():
         }
     }
     return jsonify({"status": "success", "benchmarks": default_benchmarks})
+
+
+# ==========================================================
+# ADVANCED 2026 RESEARCH ENDPOINTS
+# ==========================================================
+
+@app.route("/api/simulate/scenario", methods=["POST"])
+def simulate_scenario():
+    """
+    Real-time What-If Scenario Sandbox recalculation.
+    Request JSON:
+        traffic_delta: float (-0.5 to 0.5)
+        wind_speed: float (optional)
+        wind_dir: float (optional)
+        blh: float (optional)
+        industrial_curb: bool
+    """
+    data = request.get_json() or {}
+    traffic_delta = float(data.get("traffic_delta", 0.0))
+    wind_speed = float(data.get("wind_speed")) if "wind_speed" in data else None
+    wind_dir = float(data.get("wind_dir")) if "wind_dir" in data else None
+    blh = float(data.get("blh")) if "blh" in data else None
+    industrial_curb = bool(data.get("industrial_curb", False))
+
+    try:
+        res = scenario_simulator.simulate_scenario(
+            traffic_delta=traffic_delta,
+            wind_speed_override=wind_speed,
+            wind_dir_override=wind_dir,
+            blh_override=blh,
+            industrial_curb=industrial_curb,
+        )
+        return jsonify({"status": "success", "simulation": res})
+    except Exception as e:
+        return jsonify({"status": "error", "message": str(e)}), 500
+
+
+@app.route("/api/route/cleanest", methods=["POST"])
+def calculate_cleanest_route():
+    """
+    Cleanest Route / Green Path Optimizer.
+    Request JSON:
+        origin: [lat, lon]
+        destination: [lat, lon]
+        travel_mode: 'walking' | 'cycling'
+    """
+    data = request.get_json() or {}
+    origin = data.get("origin", [28.6476, 77.3158]) # Anand Vihar
+    dest = data.get("destination", [28.6139, 77.2090]) # Central Delhi
+    mode = data.get("travel_mode", "walking")
+
+    try:
+        route_res = route_optimizer.find_cleanest_route(
+            origin_lat=float(origin[0]),
+            origin_lon=float(origin[1]),
+            dest_lat=float(dest[0]),
+            dest_lon=float(dest[1]),
+            travel_mode=mode,
+        )
+        return jsonify({"status": "success", "route_data": route_res})
+    except Exception as e:
+        return jsonify({"status": "error", "message": str(e)}), 500
+
+
+@app.route("/api/agents/collaborate", methods=["POST"])
+def multi_agent_collaborate():
+    """
+    Tri-Agent Collaborative War Room (LangGraph-style orchestration).
+    Request JSON:
+        query: str
+        lat: float (optional)
+        lon: float (optional)
+    """
+    data = request.get_json() or {}
+    query = data.get("query", "Evaluate current emergency status and advise coordinated city actions.")
+    lat = float(data.get("lat", DEFAULT_REGION["center_lat"]))
+    lon = float(data.get("lon", DEFAULT_REGION["center_lon"]))
+
+    try:
+        session = multi_agent_war_room.run_collaboration(query=query, lat=lat, lon=lon)
+        return jsonify({"status": "success", "war_room": session})
+    except Exception as e:
+        return jsonify({"status": "error", "message": str(e)}), 500
+
+
+@app.route("/api/timelapse", methods=["GET"])
+def get_timelapse_frames():
+    """
+    24-hour diurnal evolution frames for interactive time-lapse scrubbing.
+    Returns 24 hourly downscaled grids across the day.
+    """
+    try:
+        now = datetime.datetime.now()
+        frames = []
+        # Generate 12 key hourly checkpoints across the diurnal cycle (every 2 hours)
+        for h in range(0, 24, 2):
+            t = now.replace(hour=h, minute=0, second=0)
+            weather = grid_engine.simulator.get_weather(t)
+            
+            # Fast downscale on 12x12 grid for smooth browser scrubbing
+            lats = np.linspace(DEFAULT_REGION["min_lat"], DEFAULT_REGION["max_lat"], 12)
+            lons = np.linspace(DEFAULT_REGION["min_lon"], DEFAULT_REGION["max_lon"], 12)
+            
+            cell_samples = []
+            for i, lat in enumerate(lats):
+                for j, lon in enumerate(lons):
+                    pt = grid_engine.simulator.evaluate_spatial_pollution(float(lat), float(lon), weather, t)
+                    cell_samples.append({
+                        "grid_i": i,
+                        "grid_j": j,
+                        "lat": round(float(lat), 4),
+                        "lon": round(float(lon), 4),
+                        "pm25": pt["pollutants"]["pm25"],
+                        "aqi": pt["aqi"],
+                    })
+            frames.append({
+                "hour": h,
+                "label": f"{h:02d}:00",
+                "weather": weather,
+                "cells": cell_samples,
+            })
+
+        return jsonify({
+            "status": "success",
+            "frame_count": len(frames),
+            "frames": frames,
+        })
+    except Exception as e:
+        return jsonify({"status": "error", "message": str(e)}), 500
 
 
 if __name__ == "__main__":
