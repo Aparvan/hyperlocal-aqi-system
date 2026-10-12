@@ -25,3 +25,4 @@ build/
 dist/
 aerosense.log
 .aerosense_write_test
+tempCodeRunnerFile*
