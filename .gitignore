@@ -19,3 +19,9 @@ ENV/
 # OS files
 .DS_Store
 Thumbs.db
+
+# PyInstaller build artifacts & runtime logs
+build/
+dist/
+aerosense.log
+.aerosense_write_test

@@ -25,7 +25,7 @@ import numpy as np
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 from flask import Flask, request, jsonify, send_from_directory
-from config import DEFAULT_REGION, MODELS_DIR, AQI_CATEGORIES, GROUND_STATIONS
+from config import DEFAULT_REGION, MODELS_DIR, AQI_CATEGORIES, GROUND_STATIONS, RESOURCE_DIR
 from services.grid_engine import HyperlocalGridEngine
 from services.hotspot_detector import HotspotDetector
 from services.advisor_agent import AgenticEnvironmentalAdvisor
@@ -35,7 +35,8 @@ from services.multi_agent_war_room import MultiAgentWarRoom
 from models.xai_engine import XAIEngine
 from data.preprocessor import HyperlocalPreprocessor
 
-app = Flask(__name__, static_folder="../static", static_url_path="")
+STATIC_DIR = RESOURCE_DIR / "static"
+app = Flask(__name__, static_folder=str(STATIC_DIR), static_url_path="")
 
 # Initialize core services
 grid_engine = HyperlocalGridEngine(DEFAULT_REGION)
@@ -220,16 +221,33 @@ def simulate_scenario():
     Real-time What-If Scenario Sandbox recalculation.
     Request JSON:
         traffic_delta: float (-0.5 to 0.5)
-        wind_speed: float (optional)
-        wind_dir: float (optional)
-        blh: float (optional)
+        wind_speed | wind_speed_override: float (optional)
+        wind_dir   | wind_dir_override:   float (optional)
+        blh        | blh_override:        float (optional)
         industrial_curb: bool
     """
     data = request.get_json() or {}
+    allowed_keys = {
+        "traffic_delta",
+        "wind_speed", "wind_speed_override",
+        "wind_dir", "wind_dir_override",
+        "blh", "blh_override",
+        "industrial_curb",
+    }
+    unknown = set(data.keys()) - allowed_keys
+    if unknown:
+        return jsonify({
+            "status": "error",
+            "message": f"Unrecognized scenario parameter(s): {sorted(unknown)}. Allowed: {sorted(allowed_keys)}",
+        }), 400
+
     traffic_delta = float(data.get("traffic_delta", 0.0))
-    wind_speed = float(data.get("wind_speed")) if "wind_speed" in data else None
-    wind_dir = float(data.get("wind_dir")) if "wind_dir" in data else None
-    blh = float(data.get("blh")) if "blh" in data else None
+    ws_raw = data.get("wind_speed", data.get("wind_speed_override"))
+    wd_raw = data.get("wind_dir", data.get("wind_dir_override"))
+    blh_raw = data.get("blh", data.get("blh_override"))
+    wind_speed = float(ws_raw) if ws_raw is not None else None
+    wind_dir = float(wd_raw) if wd_raw is not None else None
+    blh = float(blh_raw) if blh_raw is not None else None
     industrial_curb = bool(data.get("industrial_curb", False))
 
     try:

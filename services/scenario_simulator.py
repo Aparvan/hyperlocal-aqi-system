@@ -41,6 +41,10 @@ class ScenarioSimulator:
         sim_blh = float(blh_override) if blh_override is not None else base_weather["boundary_layer_height_m"]
 
         # Calculate ventilation & inversion adjustment ratios
+        # Note: `ventilation` here is a stagnation factor inversely proportional to wind speed
+        # (2.5 / v). Therefore ventilation_ratio = sim_stagnation / base_stagnation = base_wind / sim_wind:
+        #   - Higher simulated wind (sim_wind > base_wind) -> ratio < 1 -> lower PM2.5 (stronger dispersion)
+        #   - Lower simulated wind  (sim_wind < base_wind) -> ratio > 1 -> higher PM2.5 (stagnation buildup)
         base_ventilation = 2.5 / max(0.8, base_weather["wind_speed_ms"])
         sim_ventilation = 2.5 / max(0.8, sim_wind_speed)
         ventilation_ratio = sim_ventilation / (base_ventilation + 1e-6)

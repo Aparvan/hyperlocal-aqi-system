@@ -5,16 +5,41 @@ feature schemas, neural network hyperparameters, and system paths.
 """
 
 import os
+import sys
 from pathlib import Path
 
-# Base Paths
-BASE_DIR = Path(__file__).resolve().parent
-DATA_DIR = BASE_DIR / "data_store"
-MODELS_DIR = BASE_DIR / "saved_models"
-CACHE_DIR = BASE_DIR / "cache"
+# Base Paths — handles both normal Python execution and PyInstaller-frozen .exe builds.
+# When frozen:
+#   - RESOURCE_DIR points to bundled read-only assets (sys._MEIPASS), where static/,
+#     saved_models/, and data_store/ are unpacked.
+#   - RUNTIME_DIR points to the directory containing AeroSense.exe (or %LOCALAPPDATA%\AeroSense
+#     if the install dir is read-only, e.g., Program Files) for writable cache/logs.
+if getattr(sys, "frozen", False) and hasattr(sys, "_MEIPASS"):
+    RESOURCE_DIR = Path(sys._MEIPASS).resolve()
+    exe_dir = Path(sys.executable).resolve().parent
+    # Probe whether exe_dir is writable; fall back to %LOCALAPPDATA%\AeroSense if not
+    try:
+        probe = exe_dir / ".aerosense_write_test"
+        probe.touch()
+        probe.unlink()
+        RUNTIME_DIR = exe_dir
+    except OSError:
+        local_appdata = Path(os.environ.get("LOCALAPPDATA", Path.home() / "AppData" / "Local"))
+        RUNTIME_DIR = local_appdata / "AeroSense"
+else:
+    RESOURCE_DIR = Path(__file__).resolve().parent
+    RUNTIME_DIR = RESOURCE_DIR
 
-for directory in [DATA_DIR, MODELS_DIR, CACHE_DIR]:
+BASE_DIR = RESOURCE_DIR
+DATA_DIR = RESOURCE_DIR / "data_store"
+MODELS_DIR = RESOURCE_DIR / "saved_models"
+CACHE_DIR = RUNTIME_DIR / "cache"
+
+for directory in [CACHE_DIR]:
     directory.mkdir(parents=True, exist_ok=True)
+if not getattr(sys, "frozen", False):
+    for directory in [DATA_DIR, MODELS_DIR]:
+        directory.mkdir(parents=True, exist_ok=True)
 
 # Default Study Region: Delhi-NCR Metropolitan Area
 DEFAULT_REGION = {

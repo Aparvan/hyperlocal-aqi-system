@@ -10,3 +10,7 @@ matplotlib>=3.7.0
 pillow>=10.0.0
 pydantic>=2.0.0
 python-dateutil>=2.8.2
+
+# Optional: Native desktop window & Windows .exe packaging (used by desktop_app.py / build_exe.bat)
+# pywebview>=5.0
+# pyinstaller>=6.0

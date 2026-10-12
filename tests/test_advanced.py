@@ -5,6 +5,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 import unittest
+from unittest.mock import patch
 import torch
 import numpy as np
 
@@ -17,9 +18,33 @@ from services.multi_agent_war_room import MultiAgentWarRoom
 from models.xai_engine import XAIEngine
 from api.app import app
 
+# Deterministic baseline weather fixture so unit tests never depend on live Open-Meteo wind/BLH
+FIXED_WEATHER = {
+    "timestamp": "2026-01-15T10:00:00",
+    "source": "Deterministic Test Fixture",
+    "latitude": 28.6139,
+    "longitude": 77.2090,
+    "temperature_c": 22.0,
+    "relative_humidity_pct": 58.0,
+    "wind_speed_ms": 3.0,
+    "wind_direction_deg": 310.0,
+    "wind_u": 2.30,
+    "wind_v": -1.93,
+    "pressure_hpa": 1013.0,
+    "boundary_layer_height_m": 600.0,
+    "rainfall_mm": 0.0,
+}
+
 
 class TestAdvancedModules(unittest.TestCase):
     def setUp(self):
+        self.weather_patcher = patch(
+            "data.weather_fetcher.WeatherFetcher.fetch_current_weather",
+            return_value=dict(FIXED_WEATHER),
+        )
+        self.weather_patcher.start()
+        self.addCleanup(self.weather_patcher.stop)
+
         self.grid_engine = HyperlocalGridEngine()
         self.xai_engine = XAIEngine(self.grid_engine.model)
         self.scenario_sim = ScenarioSimulator(self.grid_engine)
@@ -53,15 +78,34 @@ class TestAdvancedModules(unittest.TestCase):
         self.assertIsNotNone(grid_c.grad)
 
     def test_scenario_simulator(self):
+        # 1. Pure emission cut (traffic -40% + industrial curb, keeping weather at baseline) must reduce PM2.5
         sim_res = self.scenario_sim.simulate_scenario(
             traffic_delta=-0.40,
-            wind_speed_override=6.0,
-            industrial_curb=True
+            industrial_curb=True,
         )
         self.assertIn("impact_summary", sim_res)
         self.assertIn("percentage_change_pm25", sim_res["impact_summary"])
-        # Reducing traffic and industrial activity should decrease PM2.5
         self.assertLess(sim_res["impact_summary"]["percentage_change_pm25"], 0.0)
+
+    def test_scenario_wind_direction(self):
+        # Baseline fixture has wind_speed_ms = 3.0 m/s.
+        # Higher wind (6.0 m/s) -> stronger ventilation -> lower PM2.5 (< 0%)
+        high_wind = self.scenario_sim.simulate_scenario(wind_speed_override=6.0)
+        self.assertLess(high_wind["impact_summary"]["percentage_change_pm25"], 0.0)
+
+        # Lower wind (1.0 m/s) -> stagnation buildup -> higher PM2.5 (> 0%)
+        low_wind = self.scenario_sim.simulate_scenario(wind_speed_override=1.0)
+        self.assertGreater(low_wind["impact_summary"]["percentage_change_pm25"], 0.0)
+
+    def test_scenario_blh_response(self):
+        # Baseline fixture has boundary_layer_height_m = 600.0 m.
+        # Deeper mixing layer (1500m) -> dilution -> lower PM2.5 (< 0%)
+        deep_blh = self.scenario_sim.simulate_scenario(blh_override=1500.0)
+        self.assertLess(deep_blh["impact_summary"]["percentage_change_pm25"], 0.0)
+
+        # Shallow thermal inversion (200m) -> trapping -> higher PM2.5 (> 0%)
+        shallow_blh = self.scenario_sim.simulate_scenario(blh_override=200.0)
+        self.assertGreater(shallow_blh["impact_summary"]["percentage_change_pm25"], 0.0)
 
     def test_route_optimizer(self):
         # From Anand Vihar (East) to Central Delhi
@@ -87,10 +131,18 @@ class TestAdvancedModules(unittest.TestCase):
         self.assertIn("grap_stage", session)
 
     def test_advanced_api_endpoints(self):
-        # 1. Scenario Simulation Endpoint
-        p1 = self.client.post("/api/simulate/scenario", json={"traffic_delta": -0.25, "industrial_curb": True})
+        # 1. Scenario Simulation Endpoint (including _override parameter aliases and unknown-key rejection)
+        p1 = self.client.post("/api/simulate/scenario", json={
+            "traffic_delta": -0.25,
+            "wind_speed_override": 5.0,
+            "industrial_curb": True,
+        })
         self.assertEqual(p1.status_code, 200)
         self.assertIn("simulation", p1.get_json())
+        self.assertEqual(p1.get_json()["simulation"]["scenario_parameters"]["wind_speed_ms"], 5.0)
+
+        p1_bad = self.client.post("/api/simulate/scenario", json={"bogus_param": 123})
+        self.assertEqual(p1_bad.status_code, 400)
 
         # 2. Route Optimizer Endpoint
         p2 = self.client.post("/api/route/cleanest", json={

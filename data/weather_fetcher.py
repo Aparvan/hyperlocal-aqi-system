@@ -59,9 +59,25 @@ class WeatherFetcher:
                 current = res.get("current", {})
                 hourly = res.get("hourly", {})
                 
-                # Extract boundary layer height for current hour if available
+                # Extract boundary layer height for the current hour (not index 0 = midnight!)
                 blh_list = hourly.get("boundary_layer_height", [])
-                blh = float(blh_list[0]) if blh_list else 650.0
+                time_list = hourly.get("time", [])
+                cur_time = current.get("time", "")
+                blh = 650.0
+                if blh_list:
+                    idx = 0
+                    if cur_time and time_list:
+                        # Open-Meteo current.time may be 'YYYY-MM-DDTHH:MM' (15-min step);
+                        # snap to the top of the hour 'YYYY-MM-DDTHH:00' for hourly table lookup.
+                        hour_key = cur_time[:13] + ":00"
+                        if hour_key in time_list:
+                            idx = time_list.index(hour_key)
+                        else:
+                            idx = min(datetime.datetime.now().hour, len(blh_list) - 1)
+                    else:
+                        idx = min(datetime.datetime.now().hour, len(blh_list) - 1)
+                    if blh_list[idx] is not None:
+                        blh = float(blh_list[idx])
                 
                 wind_speed = float(current.get("wind_speed_10m", 3.0))
                 wind_dir = float(current.get("wind_direction_10m", 310.0))
@@ -83,7 +99,7 @@ class WeatherFetcher:
                     "wind_u": wind_u,
                     "wind_v": wind_v,
                     "pressure_hpa": float(current.get("surface_pressure", 1010.0)),
-                    "boundary_layer_height_m": max(150.0, blh),
+                    "boundary_layer_height_m": max(50.0, blh),
                     "rainfall_mm": float(current.get("precipitation", 0.0)),
                 }
                 
