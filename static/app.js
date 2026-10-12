@@ -140,75 +140,6 @@ document.addEventListener("DOMContentLoaded", () => {
             const { lat, lng } = e.latlng;
             inspectLocation(lat, lng);
         });
-
-        initWindParticles();
-    }
-
-    // 2. Animated Wind Particle Streamlines (Canvas)
-    let particles = [];
-    function initWindParticles() {
-        const canvas = elements.windCanvas;
-        if (!canvas) return;
-        const ctx = canvas.getContext("2d");
-
-        function resize() {
-            canvas.width = elements.map.clientWidth;
-            canvas.height = elements.map.clientHeight;
-        }
-        resize();
-        window.addEventListener("resize", resize);
-        state.map.on("move", resize);
-        state.map.on("zoom", resize);
-
-        // Spawn 80 particles
-        for (let i = 0; i < 90; i++) {
-            particles.push({
-                x: Math.random() * canvas.width,
-                y: Math.random() * canvas.height,
-                age: Math.floor(Math.random() * 80),
-                maxAge: 70 + Math.random() * 40,
-            });
-        }
-
-        function animate() {
-            if (!state.showWind) {
-                ctx.clearRect(0, 0, canvas.width, canvas.height);
-                requestAnimationFrame(animate);
-                return;
-            }
-
-            ctx.fillStyle = "rgba(11, 15, 25, 0.12)";
-            ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-            const windDeg = (state.weather.wind_direction_deg + 180) % 360; // downwind direction
-            const rad = (windDeg * Math.PI) / 180.0;
-            const speed = Math.min(6.0, Math.max(1.2, state.weather.wind_speed_ms * 0.7));
-
-            const dx = Math.sin(rad) * speed;
-            const dy = -Math.cos(rad) * speed;
-
-            ctx.strokeStyle = "rgba(6, 182, 212, 0.45)";
-            ctx.lineWidth = 1.2;
-
-            particles.forEach(p => {
-                ctx.beginPath();
-                ctx.moveTo(p.x, p.y);
-                p.x += dx;
-                p.y += dy;
-                p.age++;
-                ctx.lineTo(p.x, p.y);
-                ctx.stroke();
-
-                if (p.age > p.maxAge || p.x < 0 || p.x > canvas.width || p.y < 0 || p.y > canvas.height) {
-                    p.x = Math.random() * canvas.width;
-                    p.y = Math.random() * canvas.height;
-                    p.age = 0;
-                }
-            });
-
-            requestAnimationFrame(animate);
-        }
-        animate();
     }
 
     // Color Scales
@@ -780,10 +711,6 @@ document.addEventListener("DOMContentLoaded", () => {
     elements.toggleStations.addEventListener("change", (e) => {
         state.showStations = e.target.checked;
         renderStations();
-    });
-
-    elements.toggleWindParticles.addEventListener("change", (e) => {
-        state.showWind = e.target.checked;
     });
 
     elements.timelapsePlayBtn.addEventListener("click", toggleTimelapsePlay);

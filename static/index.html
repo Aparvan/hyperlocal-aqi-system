@@ -10,7 +10,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;600;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="styles.css?v=2.6">
 </head>
 <body>
     <div class="app-container">
@@ -79,10 +79,6 @@
                             <!-- Overlays Toggle -->
                             <div class="layer-toggles">
                                 <label class="checkbox-label">
-                                    <input type="checkbox" id="toggleWindParticles" checked>
-                                    <span>Animated Wind Streamlines</span>
-                                </label>
-                                <label class="checkbox-label">
                                     <input type="checkbox" id="toggleStations" checked>
                                     <span>CPCB Monitoring Stations</span>
                                 </label>
@@ -121,7 +117,6 @@
                     <!-- Center Map Canvas -->
                     <div class="map-canvas-container">
                         <div id="map"></div>
-                        <canvas id="windCanvas"></canvas>
                         
                         <!-- Floating 24-Hour Time-Lapse Player Bar -->
                         <div class="timelapse-player-bar" id="timelapseBar">
@@ -565,6 +560,6 @@
 
     <!-- Leaflet JS -->
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-    <script src="app.js"></script>
+    <script src="app.js?v=2.6"></script>
 </body>
 </html>

@@ -240,10 +240,6 @@ input:checked + .slider:before { transform: translateX(18px); }
 /* Map Canvas */
 .map-canvas-container { position: relative; height: 100%; width: 100%; }
 #map { height: 100%; width: 100%; background: #111; }
-#windCanvas {
-    position: absolute; top: 0; left: 0; width: 100%; height: 100%;
-    pointer-events: none; z-index: 450;
-}
 
 /* Floating Timelapse Player */
 .timelapse-player-bar {
