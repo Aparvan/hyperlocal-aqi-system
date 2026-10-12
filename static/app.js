@@ -125,11 +125,36 @@ document.addEventListener("DOMContentLoaded", () => {
             maxZoom: 16,
         });
 
-        L.tileLayer("https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png", {
-            attribution: '&copy; CartoDB OpenStreetMap contributors',
-            subdomains: "abcd",
+        // 100% Free, Keyless OpenStreetMap & Esri Satellite Layers (No API Key Watermarks)
+        const osmDark = L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", {
+            attribution: '&copy; OpenStreetMap contributors',
             maxZoom: 19,
-        }).addTo(state.map);
+            className: "osm-dark-tiles",
+        });
+
+        const osmStandard = L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", {
+            attribution: '&copy; OpenStreetMap contributors',
+            maxZoom: 19,
+        });
+
+        const esriSatellite = L.tileLayer(
+            "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",
+            {
+                attribution: '&copy; Esri World Imagery',
+                maxZoom: 18,
+            }
+        );
+
+        osmDark.addTo(state.map);
+        L.control.layers(
+            {
+                "Dark Street Map (OSM)": osmDark,
+                "Light Street Map (OSM)": osmStandard,
+                "Satellite Imagery (Esri)": esriSatellite,
+            },
+            null,
+            { position: "topright" }
+        ).addTo(state.map);
 
         state.gridLayerGroup = L.layerGroup().addTo(state.map);
         state.hotspotLayerGroup = L.layerGroup().addTo(state.map);

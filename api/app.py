@@ -358,5 +358,16 @@ def get_timelapse_frames():
 
 
 if __name__ == "__main__":
+    from config import RUNTIME_DIR
+    log_path = RUNTIME_DIR / "aerosense.log"
+    try:
+        # When launched detached/windowless on Windows, stdout/stderr pipes may close
+        # after the parent shell exits; redirect to aerosense.log so Werkzeug never crashes on flush.
+        if sys.stdout is None or not sys.stdout.isatty():
+            log_file = open(log_path, "a", encoding="utf-8", buffering=1)
+            sys.stdout = log_file
+            sys.stderr = log_file
+    except Exception:
+        pass
     print(f"Starting Hyperlocal AQI Prediction & Mapping System on http://127.0.0.1:5000")
-    app.run(host="0.0.0.0", port=5000, debug=False)
+    app.run(host="0.0.0.0", port=5000, debug=False, threaded=True)
