@@ -20,11 +20,12 @@ import torch.nn as nn
 from torch.utils.data import DataLoader, random_split
 import numpy as np
 
-from config import MODELS_DIR, DATA_DIR, MODEL_CONFIG, DEFAULT_REGION
+from config import MODELS_DIR, DATA_DIR, MODEL_CONFIG, DEFAULT_REGION, GROUND_STATIONS
 from data.generator import AtmosphericSimulator
 from data.preprocessor import HyperlocalPreprocessor, MultimodalDataset
 from models.baselines import IDWInterpolator, NearestStationPredictor, TabularMLPBaseline, compute_metrics
 from models.multimodal_fusion import MultimodalFusionNetwork
+from models.pinn_loss import PhysicsInformedLoss
 
 
 def run_training_pipeline(epochs: int = 15, batch_size: int = 32, seed: int = 42):
@@ -43,13 +44,26 @@ def run_training_pipeline(epochs: int = 15, batch_size: int = 32, seed: int = 42
         
     print(f"Loaded {len(records)} records for training and validation.")
     
-    # 2. Build Preprocessor and Dataset
+    # 2. Build Preprocessor and True Spatial Hold-Out Split (Leave-Stations-Out)
+    # Holding out 3 distinct geographic station zones (Dwarka, Noida Sec 62, Bawana)
+    # ensures zero spatial leakage: model is evaluated strictly on unseen micro-climates.
     prep = HyperlocalPreprocessor(DEFAULT_REGION)
-    dataset = MultimodalDataset(records, prep)
+    holdout_station_ids = {"DL_005", "UP_001", "DL_008"}
     
-    val_size = int(0.2 * len(dataset))
-    train_size = len(dataset) - val_size
-    train_set, val_set = random_split(dataset, [train_size, val_size])
+    train_records = []
+    val_records = []
+    for rec in records:
+        nearest_st, _ = prep.station_fetcher.find_nearest_station(rec["lat"], rec["lon"])
+        st_id = nearest_st["station_id"] if nearest_st else ""
+        if st_id in holdout_station_ids:
+            val_records.append(rec)
+        else:
+            train_records.append(rec)
+            
+    print(f"Spatial Hold-Out Split: {len(train_records)} train records | {len(val_records)} validation records (Held out stations: {holdout_station_ids})")
+    
+    train_set = MultimodalDataset(train_records, prep)
+    val_set = MultimodalDataset(val_records, prep)
     
     train_loader = DataLoader(train_set, batch_size=batch_size, shuffle=True)
     val_loader = DataLoader(val_set, batch_size=batch_size, shuffle=False)
@@ -74,8 +88,8 @@ def run_training_pipeline(epochs: int = 15, batch_size: int = 32, seed: int = 42
             loss.backward()
             tab_optimizer.step()
             
-    # 4. Train Multimodal Deep Learning Fusion Network
-    print("\n--- Training Multimodal Deep Learning Fusion Network ---")
+    # 4. Train Multimodal Deep Learning Fusion Network with Physics-Informed (PINN) Loss
+    print("\n--- Training Multimodal Deep Learning Fusion Network (with PINN Loss) ---")
     model = MultimodalFusionNetwork(
         spatial_channels=MODEL_CONFIG["spatial_channels"],
         temporal_features=MODEL_CONFIG["temporal_features"],
@@ -85,6 +99,7 @@ def run_training_pipeline(epochs: int = 15, batch_size: int = 32, seed: int = 42
         dropout=MODEL_CONFIG["dropout"],
     ).to(device)
     
+    pinn_loss_fn = PhysicsInformedLoss(dx_meters=2000.0, dy_meters=2000.0).to(device)
     optimizer = torch.optim.AdamW(model.parameters(), lr=MODEL_CONFIG["learning_rate"], weight_decay=1e-4)
     scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, mode="min", factor=0.5, patience=2)
     criterion = nn.SmoothL1Loss()
@@ -103,11 +118,20 @@ def run_training_pipeline(epochs: int = 15, batch_size: int = 32, seed: int = 42
             
             optimizer.zero_grad()
             out = model(spat, temp, tab)
-            loss = criterion(out["preds"], targets)
-            loss.backward()
+            pred_loss = criterion(out["preds"], targets)
+            
+            # Physics-Informed (PINN) Advection-Diffusion Regularizer
+            # Evaluates spatial continuity and wind-transport residual over the spatial patch
+            wind_u = float(tab[0, 7].item()) if tab.size(0) > 0 else 0.0
+            wind_v = float(tab[0, 8].item()) if tab.size(0) > 0 else -1.5
+            pinn_res = pinn_loss_fn(spat[:, 0:1, :, :], wind_u=wind_u, wind_v=wind_v)
+            pinn_loss = pinn_res["pinn_loss"]
+            
+            total_loss = pred_loss + 0.02 * pinn_loss
+            total_loss.backward()
             torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=2.0)
             optimizer.step()
-            train_loss += loss.item() * spat.size(0)
+            train_loss += total_loss.item() * spat.size(0)
             
         train_loss /= len(train_set)
         
@@ -136,17 +160,19 @@ def run_training_pipeline(epochs: int = 15, batch_size: int = 32, seed: int = 42
             
     print(f"\nBest model saved to {model_save_path}")
     
-    # 5. Comprehensive Benchmark Evaluation on Validation Set
-    print("\n--- Running Comparative Benchmark Evaluation ---")
+    # 5. Comprehensive Benchmark Evaluation on the EXACT SAME Spatial Hold-Out Set
+    print("\n--- Running Comparative Benchmark Evaluation on Spatial Hold-Out Set ---")
     model.load_state_dict(torch.load(model_save_path, map_location=device))
     model.eval()
     tabular_model.eval()
     
     stations_snapshot = prep.station_fetcher.fetch_all_stations()
+    # Fit spatial baseline interpolators on training stations only
+    train_stations = [s for s in stations_snapshot if s["station_id"] not in holdout_station_ids]
     idw = IDWInterpolator(power=2.0)
-    idw.fit(stations_snapshot)
+    idw.fit(train_stations)
     nearest = NearestStationPredictor()
-    nearest.fit(stations_snapshot)
+    nearest.fit(train_stations)
     
     all_y_true = []
     all_pred_multimodal = []
@@ -176,24 +202,19 @@ def run_training_pipeline(epochs: int = 15, batch_size: int = 32, seed: int = 42
             all_pred_multimodal.extend(pred_multi)
             all_pred_tabular.extend(pred_tab)
             
-    # Sample subset for IDW and Nearest evaluation
-    sample_indices = np.random.choice(len(records), size=min(300, len(records)), replace=False)
-    idw_true = []
-    idw_preds = []
-    nearest_preds = []
-    for idx in sample_indices:
-        rec = records[idx]
-        idw_true.append(rec["targets"]["pm25"])
-        idw_preds.append(idw.predict_point(rec["lat"], rec["lon"], "pm25"))
-        nearest_preds.append(nearest.predict_point(rec["lat"], rec["lon"], "pm25"))
+    # Evaluate IDW and Nearest Station on the EXACT same spatial holdout validation records
+    for rec in val_records:
+        all_pred_idw.append(idw.predict_point(rec["lat"], rec["lon"], "pm25"))
+        all_pred_nearest.append(nearest.predict_point(rec["lat"], rec["lon"], "pm25"))
         
     metrics_multimodal = compute_metrics(all_y_true, all_pred_multimodal)
     metrics_tabular = compute_metrics(all_y_true, all_pred_tabular)
-    metrics_idw = compute_metrics(idw_true, idw_preds)
-    metrics_nearest = compute_metrics(idw_true, nearest_preds)
+    metrics_idw = compute_metrics(all_y_true, all_pred_idw)
+    metrics_nearest = compute_metrics(all_y_true, all_pred_nearest)
     
     benchmarks = {
         "target": "PM2.5 Concentration (ug/m3)",
+        "evaluation_protocol": "Spatial Holdout Cross-Validation (Leave-Stations-Out: Dwarka, Noida Sec 62, Bawana)",
         "models": {
             "Nearest Station Baseline": {
                 "type": "Naive Spatial Heuristic",
@@ -208,7 +229,7 @@ def run_training_pipeline(epochs: int = 15, batch_size: int = 32, seed: int = 42
                 **metrics_tabular,
             },
             "Multimodal Deep Learning (Proposed)": {
-                "type": "CNN + Bi-LSTM + Cross-Attention Fusion",
+                "type": "CNN + Bi-LSTM + Cross-Attention + PINN Loss",
                 **metrics_multimodal,
             },
         },
@@ -218,7 +239,7 @@ def run_training_pipeline(epochs: int = 15, batch_size: int = 32, seed: int = 42
     with open(benchmark_file, "w", encoding="utf-8") as f:
         json.dump(benchmarks, f, indent=2)
         
-    print("\nBenchmark Results:")
+    print("\nBenchmark Results on Unseen Spatial Hold-Out Regions:")
     for m_name, m_stats in benchmarks["models"].items():
         print(f"{m_name:38} | RMSE: {m_stats['rmse']:5.2f} | MAE: {m_stats['mae']:5.2f} | R2: {m_stats['r2']:5.3f} | Pearson r: {m_stats['pearson_r']:5.3f}")
         

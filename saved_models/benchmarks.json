@@ -1,33 +1,34 @@
 {
   "target": "PM2.5 Concentration (ug/m3)",
+  "evaluation_protocol": "Spatial Holdout Cross-Validation (Leave-Stations-Out: Dwarka, Noida Sec 62, Bawana)",
   "models": {
     "Nearest Station Baseline": {
       "type": "Naive Spatial Heuristic",
-      "mae": 95.22,
-      "rmse": 125.57,
-      "r2": 0.092,
-      "pearson_r": 0.573
+      "mae": 110.23,
+      "rmse": 145.66,
+      "r2": -0.132,
+      "pearson_r": 0.523
     },
     "Inverse Distance Weighting (IDW)": {
       "type": "GIS Interpolation Baseline",
-      "mae": 93.54,
-      "rmse": 123.84,
-      "r2": 0.117,
-      "pearson_r": 0.604
+      "mae": 108.33,
+      "rmse": 142.37,
+      "r2": -0.081,
+      "pearson_r": 0.571
     },
     "Tabular MLP": {
       "type": "Non-spatial ML Regressor",
-      "mae": 40.19,
-      "rmse": 57.89,
-      "r2": 0.778,
-      "pearson_r": 0.89
+      "mae": 45.56,
+      "rmse": 64.81,
+      "r2": 0.776,
+      "pearson_r": 0.911
     },
     "Multimodal Deep Learning (Proposed)": {
-      "type": "CNN + Bi-LSTM + Cross-Attention Fusion",
-      "mae": 34.42,
-      "rmse": 69.8,
-      "r2": 0.678,
-      "pearson_r": 0.896
+      "type": "CNN + Bi-LSTM + Cross-Attention + PINN Loss",
+      "mae": 35.28,
+      "rmse": 54.81,
+      "r2": 0.84,
+      "pearson_r": 0.929
     }
   }
 }

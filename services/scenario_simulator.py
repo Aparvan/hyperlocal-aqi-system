@@ -53,8 +53,15 @@ class ScenarioSimulator:
         sim_inversion = (800.0 / max(150.0, sim_blh)) ** 0.65
         inversion_ratio = sim_inversion / (base_inversion + 1e-6)
 
+        # Directional advection shift: In Delhi-NCR, winds from North-West (~315°) channel
+        # heavy regional upwind plumes, whereas winds from South-East (~135°) disperse regional inflow.
+        nw_rad = math.radians(315.0)
+        base_nw_align = math.cos(math.radians(base_weather["wind_direction_deg"]) - nw_rad)
+        sim_nw_align = math.cos(math.radians(sim_wind_dir) - nw_rad)
+        dir_advection_factor = max(0.70, min(1.30, 1.0 + 0.15 * (sim_nw_align - base_nw_align)))
+
         traffic_multiplier = 1.0 + float(traffic_delta)
-        ind_multiplier = 0.4 if industrial_curb else 1.0
+        ind_multiplier = 0.40 if industrial_curb else 1.0
 
         sim_cells = []
         base_pm25_list = []
@@ -67,15 +74,20 @@ class ScenarioSimulator:
 
             base_pm25_list.append(orig_pm25)
 
-            # Deconstruct baseline into traffic/industrial fraction vs meteorological dispersion
-            # Proximity to center/highways has higher traffic fraction
+            # Deconstruct baseline into traffic/industrial fraction vs meteorological dispersion.
+            # Road influence activates arterial proximity: cells with higher road/AOD density
+            # have a higher traffic-attributable fraction.
             road_influence = min(1.0, c["satellite_aod"] * 0.8)
-            traffic_part = orig_pm25 * 0.40 * traffic_multiplier
-            ind_part = orig_pm25 * 0.25 * ind_multiplier
-            background_part = orig_pm25 * 0.35
+            traffic_fraction = 0.25 + 0.25 * road_influence
+            ind_fraction = 0.30 if c["satellite_aod"] > 0.85 else 0.20
+            bg_fraction = max(0.15, 1.0 - traffic_fraction - ind_fraction)
 
-            # Apply meteorological shifts (inversion and wind ventilation)
-            new_pm25 = (traffic_part + ind_part + background_part) * (inversion_ratio ** 0.5) * (ventilation_ratio ** 0.6)
+            traffic_part = orig_pm25 * traffic_fraction * traffic_multiplier
+            ind_part = orig_pm25 * ind_fraction * ind_multiplier
+            background_part = orig_pm25 * bg_fraction
+
+            # Apply meteorological shifts (inversion, wind ventilation, and wind direction advection)
+            new_pm25 = (traffic_part + ind_part + background_part) * (inversion_ratio ** 0.5) * (ventilation_ratio ** 0.6) * dir_advection_factor
             new_pm25 = max(5.0, round(float(new_pm25), 1))
 
             new_pm10 = max(10.0, round(new_pm25 * 1.7 + 10.0, 1))

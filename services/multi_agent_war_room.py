@@ -96,31 +96,49 @@ class PolicyOrchestratorAgent:
     def formulate_directives(self, diag: dict, sim: dict) -> dict:
         aqi = diag["aqi"]
 
-        if aqi >= 400:
-            stage = "GRAP Stage IV (Severe+ / Emergency)"
+        # Statutory CAQM Revised GRAP Stages (Commission for Air Quality Management):
+        # Stage I: 201-300 (Poor), Stage II: 301-400 (Very Poor),
+        # Stage III: 401-450 (Severe), Stage IV: >450 (Severe+ / Emergency)
+        if aqi > 450:
+            stage = "GRAP Stage IV (Severe+ / Emergency: AQI > 450)"
             actions = [
-                "Ban entry of commercial diesel trucks into the municipal jurisdiction (except essential commodities).",
+                "Ban entry of commercial diesel trucks into Delhi-NCR jurisdiction (except essential goods & LNG/CNG/electric).",
                 "Mandate 50% work-from-home across public and private corporate sectors to curb peak traffic surge.",
                 "Halt all outdoor civil construction, earth-moving, and demolition activities immediately.",
-                "Deploy heavy automated mist-cannons and water sprinklers on Ring Road, GT Road, and Anand Vihar hubs.",
+                "Deploy heavy automated mist-cannons and water sprinklers continuously across Ring Road and arterial hotspots.",
             ]
-        elif aqi >= 300:
-            stage = "GRAP Stage III (Severe)"
+        elif aqi >= 401:
+            stage = "GRAP Stage III (Severe: AQI 401 - 450)"
             actions = [
-                "Enforce strict ban on BS-III petrol and BS-IV diesel passenger vehicles along arterial corridors.",
-                "Intensify mechanical road sweeping and mechanized water washing during pre-dawn hours.",
-                "Shut down non-conforming industrial boiler operations violating clean-fuel mandates.",
+                "Enforce strict ban on BS-III petrol and BS-IV diesel light motor vehicles (passenger 4-wheelers) in Delhi-NCR.",
+                "Halt non-essential commercial construction and demolition activities involving dust generation.",
+                "Intensify mechanized road sweeping and mechanized water washing during pre-dawn and evening hours.",
+                "Shut down non-conforming industrial boiler operations violating clean-fuel (PNG/biomass) mandates.",
             ]
-        else:
-            stage = "GRAP Stage II (Very Poor / Alert)"
+        elif aqi >= 301:
+            stage = "GRAP Stage II (Very Poor: AQI 301 - 400)"
             actions = [
-                "Synchronize traffic signaling at major junctions to minimize vehicular idling and tailpipe emissions.",
+                "Synchronize traffic signaling at major intersections to minimize vehicular idling and tailpipe emissions.",
+                "Enforce regulated power supply to strictly avoid diesel generator (DG) usage across commercial complexes.",
                 "Deploy targeted smog guns at designated local hotspot quadrants.",
                 "Issue public health advisory for vulnerable cohorts (pediatric and elderly asthmatics).",
             ]
+        elif aqi >= 201:
+            stage = "GRAP Stage I (Poor: AQI 201 - 300)"
+            actions = [
+                "Strictly enforce anti-dust regulations at construction sites with active water sprinkling.",
+                "Intensify anti-open burning patrols across municipal landfill sites and open grounds.",
+                "Ensure smooth traffic flow along congested corridors through active traffic police deployment.",
+            ]
+        else:
+            stage = "Standard Ambient Operations (AQI <= 200: Moderate/Good)"
+            actions = [
+                "Continue routine mechanized sweeping and monitoring across all baseline stations.",
+                "Encourage active public transit adoption and electric vehicle mobility.",
+            ]
 
         policy_statement = (
-            f"In accordance with statutory environmental mandates, current index ({aqi}) triggers **{stage}**. "
+            f"In accordance with statutory CAQM environmental mandates, current index ({aqi}) triggers **{stage}**. "
             f"Validating simulation data showing {sim['curb_reduction_pct']}% mitigative headroom, "
             f"the inter-departmental taskforce hereby authorizes the following priority enforcement protocols:"
         )

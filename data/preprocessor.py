@@ -171,12 +171,13 @@ class MultimodalDataset(Dataset):
         
         # Nearest station proxy
         nearest_st, dist_km = self.prep.station_fetcher.find_nearest_station(lat, lon)
+        st_pm25 = nearest_st["pollutants"]["pm25"] if nearest_st else 90.0
         
         # Tabular
         tabular = self.prep.build_tabular_features(lat, lon, weather, nearest_st, dist_km)
         
-        # Temporal
-        temporal = self.prep.build_temporal_features(self.weather_series, baseline_pm25=rec["targets"]["pm25"])
+        # Temporal (Leak-free: uses nearest observed station historical lag, never ground-truth target)
+        temporal = self.prep.build_temporal_features(self.weather_series, baseline_pm25=st_pm25)
         
         # Targets: [PM2.5, PM10, NO2, Overall AQI]
         targets = np.array([

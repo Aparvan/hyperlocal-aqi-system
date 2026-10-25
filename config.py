@@ -141,7 +141,7 @@ MODEL_CONFIG = {
     "cnn_channels": [16, 32],
     
     # Tabular Geo-Weather Branch
-    "tabular_features": 12, # [lat, lon, dist_to_road, dist_to_station, elevation, temp, hum, wind_u, wind_v, blh, pop_density, industrial_proxy]
+    "tabular_features": 12, # [lat, lon, dist_to_station, st_pm25, elevation, temp, hum, wind_u, wind_v, blh, pop_density, industrial_proxy]
     "tabular_hidden_dim": 32,
     
     # Fusion & Training
