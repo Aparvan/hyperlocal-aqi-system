@@ -50,6 +50,9 @@ def run_training_pipeline(epochs: int = 15, batch_size: int = 32, seed: int = 42
     prep = HyperlocalPreprocessor(DEFAULT_REGION)
     holdout_station_ids = {"DL_005", "UP_001", "DL_008"}
     
+    stations_snapshot = prep.station_fetcher.fetch_all_stations()
+    train_stations = [s for s in stations_snapshot if s["station_id"] not in holdout_station_ids]
+    
     train_records = []
     val_records = []
     for rec in records:
@@ -62,8 +65,11 @@ def run_training_pipeline(epochs: int = 15, batch_size: int = 32, seed: int = 42
             
     print(f"Spatial Hold-Out Split: {len(train_records)} train records | {len(val_records)} validation records (Held out stations: {holdout_station_ids})")
     
-    train_set = MultimodalDataset(train_records, prep)
-    val_set = MultimodalDataset(val_records, prep)
+    # Crucial: pass allowed_stations=train_stations to BOTH train and validation sets!
+    # This guarantees that validation records around Dwarka/Bawana/Noida NEVER search
+    # or access the held-out station's own readings; nearest station is picked strictly from train_stations.
+    train_set = MultimodalDataset(train_records, prep, allowed_stations=train_stations)
+    val_set = MultimodalDataset(val_records, prep, allowed_stations=train_stations)
     
     train_loader = DataLoader(train_set, batch_size=batch_size, shuffle=True)
     val_loader = DataLoader(val_set, batch_size=batch_size, shuffle=False)
@@ -121,13 +127,16 @@ def run_training_pipeline(epochs: int = 15, batch_size: int = 32, seed: int = 42
             pred_loss = criterion(out["preds"], targets)
             
             # Physics-Informed (PINN) Advection-Diffusion Regularizer
-            # Evaluates spatial continuity and wind-transport residual over the spatial patch
-            wind_u = float(tab[0, 7].item()) if tab.size(0) > 0 else 0.0
-            wind_v = float(tab[0, 8].item()) if tab.size(0) > 0 else -1.5
-            pinn_res = pinn_loss_fn(spat[:, 0:1, :, :], wind_u=wind_u, wind_v=wind_v)
+            # Evaluates spatial continuity and wind-transport residual over the model's predicted 2D spatial surface
+            # Unnormalize wind vectors to real physical meters/sec
+            raw_u = float(tab[0, 7].item()) * 2.0 + 0.0
+            raw_v = float(tab[0, 8].item()) * 2.5 - 1.5
+            pinn_res = pinn_loss_fn(out["spatial_patch_pred"], wind_u=raw_u, wind_v=raw_v)
             pinn_loss = pinn_res["pinn_loss"]
             
-            total_loss = pred_loss + 0.02 * pinn_loss
+            # Consistency between center of predicted spatial patch and point PM2.5 prediction
+            patch_center_loss = criterion(out["spatial_patch_pred"][:, 0, 2, 2], targets[:, 0])
+            total_loss = pred_loss + 0.02 * pinn_loss + 0.05 * patch_center_loss
             total_loss.backward()
             torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=2.0)
             optimizer.step()

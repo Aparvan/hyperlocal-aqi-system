@@ -151,11 +151,12 @@ class HyperlocalPreprocessor:
 
 class MultimodalDataset(Dataset):
     """PyTorch Dataset for training the multimodal architecture."""
-    def __init__(self, records: list[dict], preprocessor: HyperlocalPreprocessor):
+    def __init__(self, records: list[dict], preprocessor: HyperlocalPreprocessor, allowed_stations: list[dict] = None):
         self.records = records
         self.prep = preprocessor
+        self.allowed_stations = allowed_stations  # Strictly constrain nearest-station lookups (e.g. to training stations only)
         self.raster = preprocessor.satellite_proc.get_satellite_surface()
-        self.weather_series = preprocessor.weather_fetcher.fetch_weather_series(hours=MODEL_CONFIG["seq_length"])
+        self.fallback_weather_series = preprocessor.weather_fetcher.fetch_weather_series(hours=MODEL_CONFIG["seq_length"])
 
     def __len__(self):
         return len(self.records)
@@ -169,15 +170,24 @@ class MultimodalDataset(Dataset):
         # Spatial Patch
         spatial = self.prep.satellite_proc.extract_spatial_patch(lat, lon, self.raster)
         
-        # Nearest station proxy
-        nearest_st, dist_km = self.prep.station_fetcher.find_nearest_station(lat, lon)
+        # Nearest station proxy: strictly constrained to allowed_stations pool (guarantees zero hold-out leakage)
+        nearest_st, dist_km = self.prep.station_fetcher.find_nearest_station(lat, lon, station_pool=self.allowed_stations)
         st_pm25 = nearest_st["pollutants"]["pm25"] if nearest_st else 90.0
         
         # Tabular
         tabular = self.prep.build_tabular_features(lat, lon, weather, nearest_st, dist_km)
         
-        # Temporal (Leak-free: uses nearest observed station historical lag, never ground-truth target)
-        temporal = self.prep.build_temporal_features(self.weather_series, baseline_pm25=st_pm25)
+        # Temporal: Dynamic 24-hour weather sequence matching this exact record's timestamp
+        if "timestamp" in rec:
+            try:
+                rec_time = datetime.datetime.fromisoformat(rec["timestamp"])
+                weather_series = [self.prep.weather_fetcher.simulator.get_weather(rec_time - datetime.timedelta(hours=23 - i)) for i in range(MODEL_CONFIG["seq_length"])]
+            except Exception:
+                weather_series = self.fallback_weather_series
+        else:
+            weather_series = self.fallback_weather_series
+            
+        temporal = self.prep.build_temporal_features(weather_series, baseline_pm25=st_pm25)
         
         # Targets: [PM2.5, PM10, NO2, Overall AQI]
         targets = np.array([

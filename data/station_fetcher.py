@@ -62,10 +62,10 @@ class StationFetcher:
                 return st
         return None
 
-    def find_nearest_station(self, lat: float, lon: float) -> tuple[dict, float]:
-        """Find the nearest ground station and distance in km."""
+    def find_nearest_station(self, lat: float, lon: float, station_pool: list[dict] = None) -> tuple[dict, float]:
+        """Find the nearest ground station and distance in km from an optional constrained station pool."""
         import math
-        stations = self.fetch_all_stations()
+        stations = station_pool if station_pool is not None else self.fetch_all_stations()
         min_dist = float("inf")
         nearest = None
         for st in stations:

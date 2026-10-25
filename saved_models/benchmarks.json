@@ -4,31 +4,31 @@
   "models": {
     "Nearest Station Baseline": {
       "type": "Naive Spatial Heuristic",
-      "mae": 110.23,
-      "rmse": 145.66,
-      "r2": -0.132,
+      "mae": 109.77,
+      "rmse": 145.03,
+      "r2": -0.122,
       "pearson_r": 0.523
     },
     "Inverse Distance Weighting (IDW)": {
       "type": "GIS Interpolation Baseline",
-      "mae": 108.33,
-      "rmse": 142.37,
-      "r2": -0.081,
+      "mae": 107.86,
+      "rmse": 141.7,
+      "r2": -0.071,
       "pearson_r": 0.571
     },
     "Tabular MLP": {
       "type": "Non-spatial ML Regressor",
-      "mae": 45.56,
-      "rmse": 64.81,
-      "r2": 0.776,
-      "pearson_r": 0.911
+      "mae": 106.62,
+      "rmse": 143.8,
+      "r2": -0.103,
+      "pearson_r": 0.633
     },
     "Multimodal Deep Learning (Proposed)": {
       "type": "CNN + Bi-LSTM + Cross-Attention + PINN Loss",
-      "mae": 35.28,
-      "rmse": 54.81,
-      "r2": 0.84,
-      "pearson_r": 0.929
+      "mae": 83.12,
+      "rmse": 120.95,
+      "r2": 0.22,
+      "pearson_r": 0.841
     }
   }
 }

@@ -79,6 +79,15 @@ class MultimodalFusionNetwork(nn.Module):
         self.head_no2 = nn.Sequential(nn.Linear(64, 32), nn.ReLU(), nn.Linear(32, 1))
         self.head_aqi = nn.Sequential(nn.Linear(64, 32), nn.ReLU(), nn.Linear(32, 1))
 
+        # Spatial Dispersion Head for Physics-Informed Advection-Diffusion loss
+        # Reconstructs predicted 2D concentration surface (1, 5, 5) directly from fused representations
+        self.spatial_dispersion_head = nn.Sequential(
+            nn.Linear(64, 32),
+            nn.ReLU(),
+            nn.Linear(32, 25),
+            nn.Unflatten(1, (1, 5, 5)),
+        )
+
     def forward(
         self,
         spatial_patch: torch.Tensor,
@@ -116,6 +125,7 @@ class MultimodalFusionNetwork(nn.Module):
         pred_pm10 = F.relu(self.head_pm10(fused_repr))
         pred_no2 = F.relu(self.head_no2(fused_repr))
         pred_aqi = F.relu(self.head_aqi(fused_repr))
+        spatial_patch_pred = F.relu(self.spatial_dispersion_head(fused_repr)) # (Batch, 1, 5, 5)
         
         # Concatenate predictions: [Batch, 4]
         preds = torch.cat([pred_pm25, pred_pm10, pred_no2, pred_aqi], dim=1)
@@ -126,6 +136,7 @@ class MultimodalFusionNetwork(nn.Module):
             "pm10": pred_pm10.squeeze(-1),
             "no2": pred_no2.squeeze(-1),
             "aqi": pred_aqi.squeeze(-1),
+            "spatial_patch_pred": spatial_patch_pred,
             "fused_embedding": fused_repr,
         }
         if return_attention:
