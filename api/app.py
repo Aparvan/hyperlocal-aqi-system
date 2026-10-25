@@ -201,11 +201,12 @@ def get_benchmarks():
             
     default_benchmarks = {
         "target": "PM2.5 Concentration (ug/m3)",
+        "evaluation_protocol": "Spatial Holdout Cross-Validation (Leave-Stations-Out: Dwarka, Noida Sec 62, Bawana)",
         "models": {
-            "Nearest Station Baseline": {"type": "Naive Spatial Heuristic", "rmse": 28.45, "mae": 22.10, "r2": 0.412, "pearson_r": 0.655},
-            "Inverse Distance Weighting (IDW)": {"type": "GIS Interpolation Baseline", "rmse": 21.80, "mae": 16.42, "r2": 0.648, "pearson_r": 0.812},
-            "Tabular MLP": {"type": "Non-spatial Tabular Regressor", "rmse": 14.25, "mae": 10.15, "r2": 0.841, "pearson_r": 0.920},
-            "Multimodal Deep Learning (Proposed)": {"type": "CNN + Bi-LSTM + Cross-Attention Fusion", "rmse": 7.92, "mae": 5.48, "r2": 0.952, "pearson_r": 0.976},
+            "Nearest Station Baseline": {"type": "Naive Spatial Heuristic", "rmse": 145.66, "mae": 110.23, "r2": -0.132, "pearson_r": 0.523},
+            "Inverse Distance Weighting (IDW)": {"type": "GIS Interpolation Baseline", "rmse": 142.37, "mae": 108.33, "r2": -0.081, "pearson_r": 0.571},
+            "Tabular MLP": {"type": "Non-spatial ML Regressor", "rmse": 64.81, "mae": 45.56, "r2": 0.776, "pearson_r": 0.911},
+            "Multimodal Deep Learning (Proposed)": {"type": "CNN + Bi-LSTM + Cross-Attention + PINN Loss", "rmse": 54.81, "mae": 35.28, "r2": 0.840, "pearson_r": 0.929},
         }
     }
     return jsonify({"status": "success", "benchmarks": default_benchmarks})
