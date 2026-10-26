@@ -32,6 +32,7 @@ from services.advisor_agent import AgenticEnvironmentalAdvisor
 from services.scenario_simulator import ScenarioSimulator
 from services.route_optimizer import RouteOptimizer
 from services.multi_agent_war_room import MultiAgentWarRoom
+from services.db_manager import DatabaseManager
 from models.xai_engine import XAIEngine
 from data.preprocessor import HyperlocalPreprocessor
 
@@ -39,6 +40,7 @@ STATIC_DIR = RESOURCE_DIR / "static"
 app = Flask(__name__, static_folder=str(STATIC_DIR), static_url_path="")
 
 # Initialize core services
+db_manager = DatabaseManager()
 grid_engine = HyperlocalGridEngine(DEFAULT_REGION)
 hotspot_detector = HotspotDetector(aqi_threshold=250.0, pm25_threshold=110.0)
 advisor_agent = AgenticEnvironmentalAdvisor(grid_engine, hotspot_detector)
@@ -86,6 +88,7 @@ def get_stations():
     """List of all official ground monitoring stations and live observations."""
     try:
         stations = grid_engine.station_fetcher.fetch_all_stations()
+        db_manager.log_station_readings(stations)
         return jsonify({
             "status": "success",
             "count": len(stations),
@@ -112,6 +115,18 @@ def get_grid():
     try:
         grid_data = grid_engine.generate_grid_predictions(rows=rows, cols=cols)
         grid_data["active_layer"] = pollutant
+        if "cells" in grid_data and grid_data["cells"]:
+            cell_samples = [{
+                "lat": c["center_lat"],
+                "lon": c["center_lon"],
+                "pm25": c["pm25"],
+                "pm10": c.get("pm10"),
+                "no2": c.get("no2"),
+                "aqi": c["aqi"],
+                "dominant_factor": c.get("prominent", "pm25"),
+                "timestamp": grid_data.get("timestamp"),
+            } for c in grid_data["cells"][:48]]
+            db_manager.log_grid_predictions(cell_samples)
         return jsonify(grid_data)
     except Exception as e:
         return jsonify({"status": "error", "message": str(e)}), 500
@@ -129,6 +144,17 @@ def predict_point():
     
     try:
         result = grid_engine.predict_point(lat, lon)
+        pol = result.get("pollutants", {})
+        db_manager.log_grid_predictions([{
+            "lat": lat,
+            "lon": lon,
+            "pm25": pol.get("pm25", 0.0),
+            "pm10": pol.get("pm10", 0.0),
+            "no2": pol.get("no2", 0.0),
+            "aqi": result.get("aqi", 0),
+            "dominant_factor": result.get("dominant_source", "traffic"),
+            "category": result.get("category", "Moderate"),
+        }])
         return jsonify({"status": "success", "prediction": result})
     except Exception as e:
         return jsonify({"status": "error", "message": str(e)}), 500
@@ -259,6 +285,7 @@ def simulate_scenario():
             blh_override=blh,
             industrial_curb=industrial_curb,
         )
+        db_manager.log_simulation(data, res)
         return jsonify({"status": "success", "simulation": res})
     except Exception as e:
         return jsonify({"status": "error", "message": str(e)}), 500
@@ -286,6 +313,7 @@ def calculate_cleanest_route():
             dest_lon=float(dest[1]),
             travel_mode=mode,
         )
+        db_manager.log_route(route_res)
         return jsonify({"status": "success", "route_data": route_res})
     except Exception as e:
         return jsonify({"status": "error", "message": str(e)}), 500
@@ -353,6 +381,65 @@ def get_timelapse_frames():
             "status": "success",
             "frame_count": len(frames),
             "frames": frames,
+        })
+    except Exception as e:
+        return jsonify({"status": "error", "message": str(e)}), 500
+
+
+# ==========================================================
+# SPATIOTEMPORAL DATABASE & AUDIT ENDPOINTS
+# ==========================================================
+
+@app.route("/api/db/stats", methods=["GET"])
+def get_db_stats():
+    """Return SQLite database health, record counts across tables, and storage size."""
+    try:
+        stats = db_manager.get_stats()
+        return jsonify({"status": "success", "database": stats})
+    except Exception as e:
+        return jsonify({"status": "error", "message": str(e)}), 500
+
+
+@app.route("/api/db/history/stations", methods=["GET"])
+def get_db_stations_history():
+    """Return historical station telemetry records stored in SQLite."""
+    try:
+        limit = min(int(request.args.get("limit", 50)), 500)
+        records = db_manager.get_recent_stations(limit=limit)
+        return jsonify({
+            "status": "success",
+            "count": len(records),
+            "records": records,
+        })
+    except Exception as e:
+        return jsonify({"status": "error", "message": str(e)}), 500
+
+
+@app.route("/api/db/history/simulations", methods=["GET"])
+def get_db_simulations_history():
+    """Return What-If scenario audits stored in SQLite."""
+    try:
+        limit = min(int(request.args.get("limit", 20)), 100)
+        records = db_manager.get_recent_simulations(limit=limit)
+        return jsonify({
+            "status": "success",
+            "count": len(records),
+            "records": records,
+        })
+    except Exception as e:
+        return jsonify({"status": "error", "message": str(e)}), 500
+
+
+@app.route("/api/db/history/routes", methods=["GET"])
+def get_db_routes_history():
+    """Return green commute route optimizations stored in SQLite."""
+    try:
+        limit = min(int(request.args.get("limit", 20)), 100)
+        records = db_manager.get_recent_routes(limit=limit)
+        return jsonify({
+            "status": "success",
+            "count": len(records),
+            "records": records,
         })
     except Exception as e:
         return jsonify({"status": "error", "message": str(e)}), 500

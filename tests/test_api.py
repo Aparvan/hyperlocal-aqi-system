@@ -64,6 +64,21 @@ class TestAPI(unittest.TestCase):
         data = res.get_json()
         self.assertIn("benchmarks", data)
 
+    def test_db_stats_endpoint(self):
+        res = self.client.get("/api/db/stats")
+        self.assertEqual(res.status_code, 200)
+        data = res.get_json()
+        self.assertEqual(data["status"], "success")
+        self.assertIn("database", data)
+        self.assertIn("tables", data["database"])
+
+    def test_db_history_stations_endpoint(self):
+        res = self.client.get("/api/db/history/stations?limit=5")
+        self.assertEqual(res.status_code, 200)
+        data = res.get_json()
+        self.assertEqual(data["status"], "success")
+        self.assertIn("records", data)
+
 
 if __name__ == "__main__":
     unittest.main()

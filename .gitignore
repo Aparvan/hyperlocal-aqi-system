@@ -26,3 +26,5 @@ dist/
 aerosense.log
 .aerosense_write_test
 tempCodeRunnerFile*
+*.db-wal
+*.db-shm

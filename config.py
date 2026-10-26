@@ -34,8 +34,9 @@ BASE_DIR = RESOURCE_DIR
 DATA_DIR = RESOURCE_DIR / "data_store"
 MODELS_DIR = RESOURCE_DIR / "saved_models"
 CACHE_DIR = RUNTIME_DIR / "cache"
+DB_PATH = RUNTIME_DIR / "data_store" / "aerosense.db"
 
-for directory in [CACHE_DIR]:
+for directory in [CACHE_DIR, RUNTIME_DIR / "data_store"]:
     directory.mkdir(parents=True, exist_ok=True)
 if not getattr(sys, "frozen", False):
     for directory in [DATA_DIR, MODELS_DIR]:

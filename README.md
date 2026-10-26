@@ -210,10 +210,24 @@ Open your browser and navigate to: **`http://localhost:5000`**
 | `POST` | `/api/explain` | Explainable AI (XAI) feature attribution breakdown for a coordinate |
 | `POST` | `/api/advisor/query` | Agentic AI environmental advisor query |
 | `GET` | `/api/benchmarks` | Model comparative evaluation metrics (RMSE, MAE, R², Pearson r) |
+| `GET` | `/api/db/stats` | SQLite database health, table record counts, and storage footprint |
+| `GET` | `/api/db/history/stations` | Query historical station telemetry records stored in SQLite |
+| `GET` | `/api/db/history/simulations`| Audit log of What-If scenario simulations |
+| `GET` | `/api/db/history/routes` | Historical green commute pathfinding optimization logs |
 
 ---
 
-## 9. Research & Development Team
+## 9. Spatiotemporal Database Architecture
+
+AeroSense AI includes a thread-safe, embedded **SQLite 3** relational storage engine (`data_store/aerosense.db`) configured with **WAL (Write-Ahead Logging)** mode for zero-latency concurrent reads and writes:
+- **`stations_history`**: Historical CPCB ground station telemetry (indexed by `station_id` and `timestamp`).
+- **`hyperlocal_predictions`**: Downscaled model prediction snapshots across spatial grid points.
+- **`whatif_simulations`**: Audit trail of environmental policy scenarios and GRAP action plans.
+- **`green_routes`**: Commuter dose-minimization route optimization queries.
+
+---
+
+## 10. Research & Development Team
 
 - **Aparvan Sharma** — Machine Learning Engineer & GIS Specialist
 - **Annish Sen** — Deep Learning Researcher & Full-Stack Developer
